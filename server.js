@@ -478,6 +478,7 @@ const DB_FILE = path.join(DATA_DIR, 'db.json');
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const PRESENCE_MS = 25_000;
+const VERSION = 'v8';
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
 
@@ -973,7 +974,7 @@ function createServer() {
         const a = path.join(__dirname, 'index.html'), b = path.join(PUBLIC_DIR, 'index.html');
         return send(res, 200, fs.readFileSync(fs.existsSync(a) ? a : b, 'utf8'));
       }
-      if (method === 'GET' && p === '/api/health') return send(res, 200, { ok: true, users: Object.keys(db.users).length, queued: db.queue.length, chats: Object.keys(db.chats).length });
+      if (method === 'GET' && p === '/api/health') return send(res, 200, { ok: true, version: VERSION, users: Object.keys(db.users).length, queued: db.queue.length, chats: Object.keys(db.chats).length });
 
       /* ---------- auth ---------- */
       if (method === 'POST' && p === '/api/signup') {
