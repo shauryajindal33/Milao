@@ -10,12 +10,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#f5f2ec; --surface:#fff; --surface-2:#faf7f2;
-  --ink:#141a19; --dim:#6b7570; --faint:#9aa39e;
-  --line:rgba(20,26,25,.13); --line-soft:rgba(20,26,25,.07);
-  --teal:#0d6e63; --teal-soft:#e2f0ec;
-  --green:#1a7f5a; --yellow:#b07d10; --red:#a8323f;
-  --green-soft:#e2f3ea; --yellow-soft:#f8efd9; --red-soft:#f8e4e6;
+  --bg:#F4EBDC; --surface:#FCF7EC; --surface-2:#F0E7D6;
+  --ink:#2A2119; --dim:#6E5F4C; --faint:#9A8A73;
+  --line:rgba(42,33,25,.15); --line-soft:rgba(42,33,25,.08);
+  --teal:#924F27; --teal-soft:#F1E0CE;
+  --green:#4E6B3C; --yellow:#A8761E; --red:#8E3B2E;
+  --green-soft:#E4E8D6; --yellow-soft:#F4E6CB; --red-soft:#F3DED7;
   --serif:"Instrument Serif",Georgia,serif;
   --sans:"IBM Plex Sans","Segoe UI",sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,monospace;
@@ -165,16 +165,25 @@ let tt;
 function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 2000); }
 
 /* ------------------------------ render ------------------------------ */
+let lastKey = null;
 function render() {
+  const key = [S.token ? 1 : 0, S.tab, S.chat ? S.chat.id : '', S.run ? (S.run.test.id + S.run.i + (S.run.result ? 'r' : '')) : ''].join('|');
+  const fresh = key !== lastKey;
+  lastKey = key;
+  const y = window.scrollY || document.documentElement.scrollTop || 0;
+  const my = $('#main') ? $('#main').scrollTop : 0;
   const focused = document.activeElement && document.activeElement.id === 'msgbox';
+
   $('#top').innerHTML = topBar();
   $('#main').innerHTML = !S.token ? viewAuth() : (S.chat ? '' : viewTab());
   $('#nav').innerHTML = S.token && !S.chat ? navBar() : '';
   $('#nav').style.display = S.token && !S.chat ? 'flex' : 'none';
   if (S.chat) $('#main').insertAdjacentHTML('beforeend', viewChat());
+
   const box = $('#msgbox');
   if (box) { box.value = S.draft || ''; if (focused) box.focus(); }
-  if (!S.chat) window.scrollTo(0, 0);
+  if (fresh) { window.scrollTo(0, 0); if ($('#main')) $('#main').scrollTop = 0; }
+  else { window.scrollTo(0, y); if ($('#main')) $('#main').scrollTop = my; }
 }
 const topBar = () => `<span class="brand">Milao<i>.</i></span><span class="grow"></span>
   ${S.me ? `<span class="badge">${esc(S.me.cibil.tier)} · ${S.me.cibil.slots} slots</span>` : `<span class="lbl">strangers, sorted</span>`}`;
@@ -359,7 +368,7 @@ function viewProfile() {
     <hr class="sep">
     <p class="small dim" style="margin-bottom:8px">"${esc(m.status || 'no status yet')}"</p>
     <div class="row">
-      <button class="ghost" data-act="editprofile">Edit status</button>
+      <button class="ghost" data-act="editprofile">Edit details</button>
       <button class="ghost" data-act="logout">Sign out</button>
     </div>
   </div>
@@ -375,14 +384,38 @@ function viewProfile() {
 
   <div class="card">
     <div class="hd"><h3>Astrology</h3><span class="lbl">${c.hasTime ? 'with birth time' : 'no birth time'}</span></div>
-    <div class="kv"><span class="dim">Sun</span><b>${esc(c.sun.sign)}</b></div>
-    <div class="kv"><span class="dim">Moon</span><b>${esc(c.moon.sign)}</b></div>
+    <p class="lbl" style="margin:2px 0 6px">western · tropical</p>
+    <div class="kv"><span class="dim">Sun</span><b>${esc(c.western.sun)}</b></div>
+    <div class="kv"><span class="dim">Moon</span><b>${esc(c.western.moon)}</b></div>
+    <div class="kv"><span class="dim">Rising</span><b>${esc(c.western.lagna)}</b></div>
+    <div class="kv"><span class="dim">Venus · Mars</span><b>${esc(c.western.venus)} · ${esc(c.western.mars)}</b></div>
+    <hr class="sep">
+    <p class="lbl" style="margin:2px 0 6px">vedic · sidereal</p>
+    <div class="kv"><span class="dim">Lagna</span><b>${esc(c.lagna.sign)} · lord ${esc(c.lagna.lord)}</b></div>
+    <div class="kv"><span class="dim">Sun</span><b>${esc(c.sun.sign)} · house ${c.sun.house}</b></div>
+    <div class="kv"><span class="dim">Moon</span><b>${esc(c.moon.sign)} · house ${c.moon.house}</b></div>
     <div class="kv"><span class="dim">Nakshatra</span><b>${esc(c.moon.nak)} · pada ${c.moon.pada}</b></div>
     <div class="kv"><span class="dim">Nakshatra lord</span><b>${esc(c.moon.lord)}</b></div>
-    <div class="kv"><span class="dim">Venus</span><b>${esc(c.venus.sign)}</b></div>
-    <div class="kv"><span class="dim">Mars</span><b>${esc(c.mars.sign)}</b></div>
+    <div class="kv"><span class="dim">Venus</span><b>${esc(c.venus.sign)} · house ${c.venus.house}</b></div>
+    <div class="kv"><span class="dim">Mars</span><b>${esc(c.mars.sign)} · house ${c.mars.house}</b></div>
+    <div class="kv"><span class="dim">Rahu · Ketu</span><b>${esc(c.rahu.sign)} · ${esc(c.ketu.sign)}</b></div>
+    <div class="kv"><span class="dim">Manglik</span><b>${c.manglik.is ? 'yes · Mars in house ' + c.mars.house : 'no'}</b></div>
     <div class="kv"><span class="dim">Element · modality</span><b>${esc(c.element)} · ${esc(c.modality)}</b></div>
+    <p class="tiny" style="margin-top:6px">${esc(c.place && c.place.known ? c.place.name : 'place not recognised')} · ${c.place ? c.place.lat.toFixed(2) + '°, ' + c.place.lon.toFixed(2) + '°' : ''}${!c.hasTime ? ' · no birth time, ascendant approximate' : ''}</p>
     ${!c.hasTime ? `<p class="tiny" style="margin-top:6px">Without a birth time the moon could be any of: ${c.moon.nakRange.map(esc).join(', ')}.</p>` : ''}
+    <p class="tiny" style="margin-top:6px">Western signs are tropical, Vedic ones sidereal — that is why they sit about a sign apart. Both are correct; they are different zodiacs.</p>
+  </div>
+
+  <div class="card">
+    <div class="hd"><h3>Other systems</h3><span class="lbl">${c.systems ? 'computed' : '—'}</span></div>
+    ${c.systems ? `
+    <div class="kv"><span class="dim">Mayan (Tzolkin)</span><b>${esc(c.systems.mayan.mayan)} · tone ${c.systems.mayan.tone}</b></div>
+    <div class="kv"><span class="dim">Aztec (Tonalpohualli)</span><b>${esc(c.systems.mayan.aztec)}</b></div>
+    <div class="kv"><span class="dim">Celtic tree</span><b>${esc(c.systems.celtic)}</b></div>
+    <div class="kv"><span class="dim">Burmese day</span><b>${esc(c.systems.burmese)}</b></div>
+    <div class="kv"><span class="dim">13-sign (real sky)</span><b>${esc(c.systems.thirteen)}</b></div>` : ''}
+    <div class="kv"><span class="dim">Chinese</span><b>${esc(c.chinese.element)} ${esc(c.chinese.animal)}</b></div>
+    <p class="tiny" style="margin-top:6px">Chinese animals follow the actual new-year date, so January births fall in the previous year's animal.</p>
   </div>
 
   <div class="card">
@@ -390,7 +423,7 @@ function viewProfile() {
     <div class="kv"><span class="dim">Mulank</span><b>${n.mulank}</b></div>
     <div class="kv"><span class="dim">Bhagyank</span><b>${n.bhagyank}</b></div>
     ${n.namank ? `<div class="kv"><span class="dim">Namank</span><b>${n.namank}</b></div>` : ''}
-    <div class="kv"><span class="dim">Chinese</span><b>${esc(c.chinese.element)} ${esc(c.chinese.animal)}</b></div>
+    <div class="kv"><span class="dim">Lo Shu filled</span><b>${Object.values(n.counts).filter(x => x > 0).length}/9</b></div>
   </div>
 
   <div class="card">
@@ -414,6 +447,7 @@ document.addEventListener('click', async (e) => {
   if (!el) return;
   if (el.dataset.g) { document.querySelectorAll('#a-gender button').forEach(b => b.setAttribute('aria-pressed', b === el)); S.gender = el.dataset.g; return; }
   if (el.dataset.p) { document.querySelectorAll('#a-pref button').forEach(b => b.setAttribute('aria-pressed', b === el)); S.pref = el.dataset.p; return; }
+  if (el.dataset.ep) { document.querySelectorAll('#e-pref button').forEach(b => b.setAttribute('aria-pressed', b === el)); S.editPref = el.dataset.ep; return; }
   const act = el.dataset.act;
   const guard = async fn => { if (S.busy) return; S.busy = true; try { await fn(); } catch (err) { toast(err.message); } finally { S.busy = false; } };
 
@@ -482,9 +516,15 @@ document.addEventListener('click', async (e) => {
     case 'closesheet': if (e.target.closest('.inner')) return; closeSheet(); break;
 
     case 'editprofile': openEdit(); break;
-    case 'savestatus': await guard(async () => {
-      const r = await api('/api/profile', { method: 'POST', body: { status: $('#e-status').value, name: $('#e-name').value } });
-      closeSheet(); await refreshMe(); render(); toast('Saved');
+    case 'saveprofile': await guard(async () => {
+      await api('/api/profile', { method: 'POST', body: {
+        name: $('#e-name').value, status: $('#e-status').value,
+        dob: $('#e-dob').value, tob: $('#e-tob').value,
+        city: $('#e-city').value, pref: S.editPref || S.me.user.pref
+      }});
+      S.editPref = null;
+      closeSheet(); await refreshMe(); render();
+      toast('Saved — chart recalculated');
     }); break;
 
     case 'opentest': {
@@ -531,23 +571,37 @@ function openReport() {
   </div></div>`;
 }
 function openEdit() {
-  $('#sheet').innerHTML = `<div class="sheet" data-act="closesheet"><div class="inner">
-    <h3 style="margin-bottom:10px">Your card</h3>
-    <label class="f"><span>name</span><input id="e-name" maxlength="24" value="${esc(S.me.user.name)}"></label>
+  const u = S.me.user, c = S.me.chart;
+  $('#sheet').innerHTML = `<div class="sheet" data-act="closesheet"><div class="inner" style="max-height:88vh;overflow-y:auto">
+    <h3 style="margin-bottom:4px">Edit your details</h3>
+    <p class="tiny" style="margin-bottom:12px">Change your birth date, time or place and the whole chart is recalculated.</p>
+    <label class="f"><span>name</span><input id="e-name" maxlength="24" value="${esc(u.name)}"></label>
     <label class="f"><span>status — 50 characters</span><input id="e-status" maxlength="50" value="${esc(S.me.status || '')}"></label>
-    <button class="p w" data-act="savestatus">Save</button>
+    <div class="row">
+      <label class="f"><span>birth date</span><input id="e-dob" type="date" value="${esc(c.dob || '')}"></label>
+      <label class="f"><span>birth time</span><input id="e-tob" type="time" value="${esc(S.me.tob || '')}"></label>
+    </div>
+    <label class="f"><span>birth place</span><input id="e-city" value="${esc(u.city)}"></label>
+    <label class="f"><span>show me</span>
+      <div class="seg" id="e-pref">${['Men','Women','Anyone'].map(p => `<button data-ep="${p}" aria-pressed="${u.pref === p}">${p}</button>`).join('')}</div>
+    </label>
+    <p class="tiny" style="margin-bottom:10px">${c.place && !c.place.known ? 'That birth place is not recognised — try the nearest large city, or the ascendant will be off.' : 'Birth time is optional. Without it the ascendant is approximate.'}</p>
+    <button class="p w" data-act="saveprofile">Save changes</button>
     <button class="ghost w" data-act="closesheet" style="margin-top:8px">Cancel</button>
   </div></div>`;
 }
 
 /* ------------------------------ polling ------------------------------ */
+let lastStateJSON = '';
 async function refreshState() {
   try {
     const st = await api('/api/state');
-    const wasEmpty = S.state && S.state.slots.every(s => !s.chatId);
+    const json = JSON.stringify(st);
+    const changed = json !== lastStateJSON;
+    lastStateJSON = json;
     S.state = st;
     if (st.newChats && st.newChats.length && !S.chat) toast('You have a match');
-    render();
+    if (changed) render();
   } catch (err) { if (err.code === 401) logout(); }
 }
 async function refreshMe() { S.me = await api('/api/me'); }

@@ -12,7 +12,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const os = require('node:os');
-/* ---------- astrology engine (inlined so the repo is flat files) ---------- */
+/* astrology engine, inlined so the repo stays flat */
 const astro = (() => {
 
 /**
@@ -109,6 +109,85 @@ function sunLongitude(jd) {
 
 const lahiriAyanamsa = jd => 23.8532 + 0.0139694 * ((jd - 2451545.0) / 365.25);
 
+
+/* ---------------- places (lat, lon, tz hours) ---------------- */
+const CITIES = {
+  "bengaluru":[12.972,77.594,5.5], "bangalore":[12.972,77.594,5.5], "mumbai":[19.076,72.877,5.5],
+  "bombay":[19.076,72.877,5.5], "delhi":[28.614,77.209,5.5], "new delhi":[28.614,77.209,5.5],
+  "kolkata":[22.573,88.364,5.5], "calcutta":[22.573,88.364,5.5], "chennai":[13.083,80.271,5.5],
+  "madras":[13.083,80.271,5.5], "hyderabad":[17.385,78.487,5.5], "pune":[18.520,73.856,5.5],
+  "ahmedabad":[23.023,72.571,5.5], "jaipur":[26.912,75.787,5.5], "lucknow":[26.847,80.947,5.5],
+  "kanpur":[26.449,80.331,5.5], "nagpur":[21.146,79.088,5.5], "indore":[22.720,75.857,5.5],
+  "bhopal":[23.260,77.413,5.5], "patna":[25.594,85.138,5.5], "vadodara":[22.307,73.181,5.5],
+  "surat":[21.170,72.831,5.5], "kochi":[9.931,76.267,5.5], "cochin":[9.931,76.267,5.5],
+  "coimbatore":[11.017,76.956,5.5], "thiruvananthapuram":[8.524,76.937,5.5], "trivandrum":[8.524,76.937,5.5],
+  "mysuru":[12.295,76.639,5.5], "mysore":[12.295,76.639,5.5], "mangaluru":[12.914,74.856,5.5],
+  "mangalore":[12.914,74.856,5.5], "hubballi":[15.365,75.124,5.5], "belagavi":[15.849,74.498,5.5],
+  "vijayawada":[16.507,80.648,5.5], "visakhapatnam":[17.687,83.219,5.5], "vizag":[17.687,83.219,5.5],
+  "tirupati":[13.629,79.419,5.5], "warangal":[17.978,79.594,5.5], "guntur":[16.306,80.436,5.5],
+  "nellore":[14.442,79.986,5.5], "rajahmundry":[17.005,81.804,5.5], "kakinada":[16.989,82.247,5.5],
+  "madurai":[9.925,78.120,5.5], "tiruchirappalli":[10.790,78.704,5.5], "trichy":[10.790,78.704,5.5],
+  "salem":[11.664,78.146,5.5], "tirunelveli":[8.714,77.756,5.5], "vellore":[12.916,79.132,5.5],
+  "erode":[11.342,77.727,5.5], "thrissur":[10.527,76.214,5.5], "kollam":[8.893,76.614,5.5],
+  "kozhikode":[11.258,75.780,5.5], "calicut":[11.258,75.780,5.5], "kannur":[11.874,75.370,5.5],
+  "alappuzha":[9.498,76.339,5.5], "palakkad":[10.786,76.655,5.5], "kottayam":[9.591,76.522,5.5],
+  "chandigarh":[30.733,76.779,5.5], "ludhiana":[30.901,75.857,5.5], "amritsar":[31.634,74.873,5.5],
+  "jalandhar":[31.326,75.576,5.5], "patiala":[30.339,76.386,5.5], "gurugram":[28.459,77.026,5.5],
+  "gurgaon":[28.459,77.026,5.5], "noida":[28.535,77.391,5.5], "ghaziabad":[28.669,77.453,5.5],
+  "faridabad":[28.408,77.317,5.5], "meerut":[28.984,77.706,5.5], "agra":[27.177,78.008,5.5],
+  "varanasi":[25.317,82.973,5.5], "banaras":[25.317,82.973,5.5], "allahabad":[25.436,81.846,5.5],
+  "prayagraj":[25.436,81.846,5.5], "gorakhpur":[26.760,83.373,5.5], "bareilly":[28.367,79.430,5.5],
+  "aligarh":[27.897,78.088,5.5], "moradabad":[28.838,78.773,5.5], "jhansi":[25.448,78.569,5.5],
+  "gwalior":[26.218,78.183,5.5], "jabalpur":[23.182,79.987,5.5], "ujjain":[23.176,75.789,5.5],
+  "raipur":[21.251,81.629,5.5], "bilaspur":[22.080,82.156,5.5], "ranchi":[23.344,85.310,5.5],
+  "jamshedpur":[22.804,86.203,5.5], "dhanbad":[23.796,86.430,5.5], "bhubaneswar":[20.296,85.825,5.5],
+  "cuttack":[20.462,85.883,5.5], "rourkela":[22.260,84.854,5.5], "guwahati":[26.145,91.736,5.5],
+  "silchar":[24.833,92.779,5.5], "dibrugarh":[27.472,94.912,5.5], "imphal":[24.817,93.937,5.5],
+  "shillong":[25.578,91.893,5.5], "aizawl":[23.727,92.718,5.5], "agartala":[23.831,91.287,5.5],
+  "kohima":[25.675,94.108,5.5], "gangtok":[27.331,88.614,5.5], "siliguri":[26.727,88.395,5.5],
+  "durgapur":[23.520,87.311,5.5], "asansol":[23.685,86.975,5.5], "howrah":[22.595,88.264,5.5],
+  "jodhpur":[26.238,73.024,5.5], "kota":[25.213,75.864,5.5], "bikaner":[28.022,73.311,5.5],
+  "ajmer":[26.449,74.639,5.5], "udaipur":[24.585,73.712,5.5], "bhavnagar":[21.764,72.151,5.5],
+  "rajkot":[22.303,70.802,5.5], "jamnagar":[22.470,70.058,5.5], "gandhinagar":[23.216,72.649,5.5],
+  "nashik":[19.997,73.789,5.5], "aurangabad":[19.876,75.343,5.5], "solapur":[17.659,75.906,5.5],
+  "kolhapur":[16.705,74.243,5.5], "amravati":[20.932,77.752,5.5], "nanded":[19.138,77.321,5.5],
+  "thane":[19.218,72.978,5.5], "navi mumbai":[19.033,73.029,5.5], "panaji":[15.491,73.827,5.5],
+  "goa":[15.491,73.827,5.5], "puducherry":[11.941,79.808,5.5], "pondicherry":[11.941,79.808,5.5],
+  "dehradun":[30.317,78.032,5.5], "haridwar":[29.945,78.164,5.5], "rishikesh":[30.087,78.270,5.5],
+  "nainital":[29.391,79.454,5.5], "shimla":[31.104,77.173,5.5], "srinagar":[34.084,74.797,5.5],
+  "jammu":[32.726,74.857,5.5], "leh":[34.152,77.577,5.5], "kathmandu":[27.717,85.324,5.75],
+  "colombo":[6.927,79.861,5.5], "dhaka":[23.811,90.413,6], "karachi":[24.861,67.010,5],
+  "lahore":[31.520,74.359,5], "islamabad":[33.684,73.048,5], "dubai":[25.205,55.271,4],
+  "abu dhabi":[24.453,54.377,4], "doha":[25.286,51.531,3], "riyadh":[24.713,46.675,3],
+  "muscat":[23.588,58.408,4], "kuwait":[29.376,47.978,3], "manama":[26.229,50.586,3],
+  "singapore":[1.352,103.820,8], "kuala lumpur":[3.139,101.687,8], "bangkok":[13.756,100.502,7],
+  "hong kong":[22.320,114.174,8], "shanghai":[31.230,121.474,8], "tokyo":[35.677,139.650,9],
+  "seoul":[37.567,126.978,9], "sydney":[-33.869,151.209,11], "melbourne":[-37.814,144.963,11],
+  "perth":[-31.953,115.857,8], "auckland":[-36.849,174.763,12], "london":[51.507,-0.128,1],
+  "manchester":[53.481,-2.243,1], "birmingham":[52.487,-1.890,1], "dublin":[53.350,-6.260,1],
+  "paris":[48.857,2.352,2], "berlin":[52.520,13.405,2], "amsterdam":[52.370,4.895,2],
+  "frankfurt":[50.110,8.682,2], "zurich":[47.377,8.542,2], "madrid":[40.417,-3.704,2],
+  "barcelona":[41.385,2.173,2], "rome":[41.903,12.496,2], "milan":[45.464,9.190,2],
+  "lisbon":[38.722,-9.139,1], "stockholm":[59.329,18.069,2], "oslo":[59.914,10.752,2],
+  "copenhagen":[55.677,12.568,2], "helsinki":[60.170,24.938,3], "warsaw":[52.230,21.012,2],
+  "moscow":[55.756,37.617,3], "istanbul":[41.008,28.978,3], "athens":[37.984,23.728,3],
+  "new york":[40.713,-74.006,-5], "boston":[42.360,-71.059,-5], "toronto":[43.653,-79.383,-5],
+  "chicago":[41.878,-87.630,-6], "austin":[30.267,-97.743,-6], "houston":[29.760,-95.370,-6],
+  "denver":[39.739,-104.990,-7], "los angeles":[34.052,-118.244,-8], "san francisco":[37.775,-122.419,-8],
+  "seattle":[47.606,-122.332,-8], "vancouver":[49.283,-123.121,-8], "san jose":[37.339,-121.895,-8],
+  "mexico city":[19.433,-99.133,-6], "sao paulo":[-23.551,-46.633,-3], "buenos aires":[-34.604,-58.382,-3],
+  "lagos":[6.524,3.379,1], "nairobi":[-1.286,36.817,3], "johannesburg":[-26.204,28.047,2],
+  "cape town":[-33.925,18.424,2], "cairo":[30.044,31.236,2], "tehran":[35.689,51.389,3.5],
+  "kabul":[34.556,69.208,4.5], "tashkent":[41.299,69.240,5], "almaty":[43.238,76.889,6]
+};
+function placeOf(name) {
+  const k = String(name || '').toLowerCase().trim().replace(/\s+/g, ' ');
+  if (CITIES[k]) return { lat: CITIES[k][0], lon: CITIES[k][1], tz: CITIES[k][2], known: true };
+  const part = Object.keys(CITIES).find(c => k.includes(c));
+  if (part) return { lat: CITIES[part][0], lon: CITIES[part][1], tz: CITIES[part][2], known: true };
+  return { lat: 20.5937, lon: 78.9629, tz: 5.5, known: false };   // centre of India
+}
+
 /* ---------------- signs, nakshatras ---------------- */
 const SIGNS = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
 const SIGN_LORD = ['Mars','Venus','Mercury','Moon','Sun','Mercury','Venus','Mars','Jupiter','Saturn','Saturn','Jupiter'];
@@ -182,7 +261,8 @@ const NUM_FRIENDS = {
   4:{f:[4,5,6,8], e:[1,2,9]}, 5:{f:[1,3,5,6], e:[2]}, 6:{f:[4,5,6,8], e:[1,2]},
   7:{f:[4,6,7,8], e:[1,2]}, 8:{f:[4,5,6,7,8], e:[1,2,9]}, 9:{f:[1,2,3,9], e:[5]}
 };
-const LETTER_NUM = { a:1,b:2,c:3,d:4,e:5,f:8,g:3,h:5,i:1,j:1,k:2,l:3,m:4,n:5,o:7,p:8,q:1,r:2,s:3,t:4,u:6,v:6,w:6,x:5,y:1,z:7 };
+const LETTER_NUM = { a:1,i:1,j:1,q:1,y:1, b:2,k:2,r:2, c:3,g:3,l:3,s:3, d:4,m:4,t:4,
+  e:5,h:5,n:5,x:5, u:6,v:6,w:6, o:7,z:7, f:8,p:8 };
 function numerology(dob, name) {
   const [y, m, d] = dob.split('-').map(Number);
   const mulank = reduce(d);
@@ -207,9 +287,9 @@ const ANIMALS = ['Rat','Ox','Tiger','Rabbit','Dragon','Snake','Horse','Goat','Mo
 const ELEMENTS_CN = ['Wood','Fire','Earth','Metal','Water'];
 const TRINES = [['Rat','Dragon','Monkey'],['Ox','Snake','Rooster'],['Tiger','Horse','Dog'],['Rabbit','Goat','Pig']];
 const CLASH = { Rat:'Horse', Ox:'Goat', Tiger:'Monkey', Rabbit:'Rooster', Dragon:'Dog', Snake:'Pig', Horse:'Rat', Goat:'Ox', Monkey:'Tiger', Rooster:'Rabbit', Dog:'Dragon', Pig:'Snake' };
-function chinese(dob) {
-  const [y, m, d] = dob.split('-').map(Number);
-  const year = (m < 2 || (m === 2 && d < 4)) ? y - 1 : y;
+function chineseOn(dob, bornAfterCNY) {
+  const y = Number(dob.slice(0, 4));
+  const year = bornAfterCNY ? y : y - 1;
   const idx = ((year - 4) % 12 + 12) % 12;
   return {
     animal: ANIMALS[idx],
@@ -225,42 +305,170 @@ function chinesePair(a, b) {
   return 0.55;
 }
 
+
+/* ---------------- sidereal time & ascendant ---------------- */
+function gmst(jd) {
+  const T = (jd - 2451545.0) / 36525.0;
+  return norm360(280.46061837 + 360.98564736629 * (jd - 2451545.0) + 0.000387933 * T * T - T * T * T / 38710000);
+}
+function obliquity(jd) {
+  const T = (jd - 2451545.0) / 36525.0;
+  return 23.439291 - 0.0130042 * T;
+}
+/** tropical ascendant in degrees, from latitude and local sidereal time */
+function ascendant(jd, lat, lon) {
+  const lst = norm360(gmst(jd) + lon) * D2R;
+  const eps = obliquity(jd) * D2R;
+  const phi = lat * D2R;
+  const y = Math.cos(lst);
+  const x = -(Math.sin(lst) * Math.cos(eps) + Math.tan(phi) * Math.sin(eps));
+  return norm360(Math.atan2(y, x) * R2D);
+}
+/** mean lunar node (Rahu), retrograde through the zodiac */
+function rahu(jd) {
+  const T = (jd - 2451545.0) / 36525.0;
+  return norm360(125.0445479 - 1934.1362891 * T + 0.0020754 * T * T + T * T * T / 467441);
+}
+const MANGLIK_HOUSES = [1, 2, 4, 7, 8, 12];
+/** whole-sign houses counted from the ascendant */
+function houseOf(lon, ascLon) {
+  return ((Math.floor(norm360(lon) / 30) - Math.floor(norm360(ascLon) / 30) + 12) % 12) + 1;
+}
+
+
+/* ---------------- more zodiac systems ---------------- */
+/** the moment the Moon and Sun share a longitude — found by bisection on the
+ *  already-validated lunar series, so it agrees with the rest of the engine */
+function newMoonNear(jdGuess) {
+  const elong = jd => norm360(moonLongitude(jd) - sunLongitude(jd));
+  let a = jdGuess - 3, b = jdGuess + 3;
+  let ea = elong(a) - 360, eb = elong(b);          // unwrap around 0
+  for (let i = 0; i < 60; i++) {
+    const m = (a + b) / 2;
+    const em = (() => { const e = elong(m); return e > 180 ? e - 360 : e; })();
+    if (em < 0) a = m; else b = m;
+  }
+  return (a + b) / 2;
+}
+/** Chinese New Year: the new moon falling between 21 Jan and 21 Feb */
+function chineseNewYear(year) {
+  let jd = julianDay(year, 1, 20, 0);
+  for (let i = 0; i < 3; i++) {
+    const nm = newMoonNear(jd + i * 29.53);
+    const d = new Date((nm - 2440587.5) * 86400000);
+    const m = d.getUTCMonth() + 1, day = d.getUTCDate();
+    if ((m === 1 && day >= 21) || (m === 2 && day <= 21)) return nm;
+  }
+  return julianDay(year, 2, 4, 0);
+}
+const MAYAN = ['Imix','Ik','Akbal','Kan','Chicchan','Cimi','Manik','Lamat','Muluc','Oc','Chuen','Eb','Ben','Ix','Men','Cib','Caban','Etznab','Cauac','Ahau'];
+const AZTEC = ['Cipactli','Ehecatl','Calli','Cuetzpalin','Coatl','Miquiztli','Mazatl','Tochtli','Atl','Itzcuintli','Ozomahtli','Malinalli','Acatl','Ocelotl','Cuauhtli','Cozcacuauhtli','Ollin','Tecpatl','Quiahuitl','Xochitl'];
+function tzolkin(jd) {
+  const jdn = Math.floor(jd + 0.5);
+  const n = ((jdn - 584283) % 260 + 260) % 260;      // GMT correlation
+  return { mayan: MAYAN[n % 20], aztec: AZTEC[n % 20], tone: (n % 13) + 1, number: n + 1 };
+}
+const CELTIC = [
+  ['Birch', 12, 24, 1, 20], ['Rowan', 1, 21, 2, 17], ['Ash', 2, 18, 3, 17], ['Alder', 3, 18, 4, 14],
+  ['Willow', 4, 15, 5, 12], ['Hawthorn', 5, 13, 6, 9], ['Oak', 6, 10, 7, 7], ['Holly', 7, 8, 8, 4],
+  ['Hazel', 8, 5, 9, 1], ['Vine', 9, 2, 9, 29], ['Ivy', 9, 30, 10, 27], ['Reed', 10, 28, 11, 24],
+  ['Elder', 11, 25, 12, 23]
+];
+function celtic(dob) {
+  const [y, m, d] = dob.split('-').map(Number);
+  const v = m * 100 + d;
+  for (const [name, m1, d1, m2, d2] of CELTIC) {
+    const a = m1 * 100 + d1, b = m2 * 100 + d2;
+    if (a <= b ? (v >= a && v <= b) : (v >= a || v <= b)) return name;
+  }
+  return 'Birch';
+}
+const BURMESE = ['Garuda','Tiger','Lion','Elephant with tusks','Elephant without tusks','Rat','Guinea pig','Dragon'];
+function burmese(dob, tob) {
+  const [y, m, d] = dob.split('-').map(Number);
+  const wd = new Date(Date.UTC(y, m - 1, d)).getUTCDay();     // 0 = Sunday
+  const pm = tob && Number(tob.split(':')[0]) >= 12;
+  if (wd === 3) return pm ? BURMESE[4] : BURMESE[3];          // Wednesday splits
+  return wd < 3 ? BURMESE[wd] : BURMESE[wd + 1];
+}
+/** the 13 astronomical constellations the Sun actually passes through */
+const THIRTEEN = [[28,'Aries'],[53,'Taurus'],[91,'Gemini'],[119,'Cancer'],[139,'Leo'],[175,'Virgo'],
+  [218,'Libra'],[242,'Scorpio'],[248,'Ophiuchus'],[266,'Sagittarius'],[301,'Capricorn'],[328,'Aquarius'],[352,'Pisces']];
+function thirteenSign(tropicalLon) {
+  const L = norm360(tropicalLon);
+  let out = THIRTEEN[THIRTEEN.length - 1][1];
+  for (const [start, name] of THIRTEEN) if (L >= start) out = name;
+  return out;
+}
+
 /* ---------------- one person's whole chart ---------------- */
-function chart({ dob, tob, name }) {
+function chart({ dob, tob, name, place }) {
   const hasTime = !!tob;
-  const jd = jdFromLocal(dob, tob || '12:00', 5.5);
+  const p = placeOf(place);
+  const jd = jdFromLocal(dob, tob || '12:00', p.tz);
   const ay = lahiriAyanamsa(jd);
+  const sid = lon => norm360(lon - ay);
 
-  const sunTrop = sunLongitude(jd);
-  const moonTrop = moonLongitude(jd);
-  const venusTrop = geoLongitude('venus', jd);
-  const marsTrop = geoLongitude('mars', jd);
+  const sunSid = sid(sunLongitude(jd));
+  const moonSid = sid(moonLongitude(jd));
+  const venusSid = sid(geoLongitude('venus', jd));
+  const marsSid = sid(geoLongitude('mars', jd));
+  const rahuSid = sid(rahu(jd));
+  const ketuSid = norm360(rahuSid + 180);
+  const ascSid = sid(ascendant(jd, p.lat, p.lon));
 
-  const sunSid = norm360(sunTrop - ay), moonSid = norm360(moonTrop - ay);
-
-  // without a birth time the moon can be one nakshatra either side
-  const moonSwing = hasTime ? 0 : 0.55 * 13.176;   // ~half a day of lunar motion
   const nak = nakshatraOf(moonSid);
-  const nakLow = nakshatraOf(moonSid - moonSwing), nakHigh = nakshatraOf(moonSid + moonSwing);
+  const swing = hasTime ? 0 : 0.55 * 13.176;
+  const nakLow = nakshatraOf(moonSid - swing), nakHigh = nakshatraOf(moonSid + swing);
+
+  const marsHouseLagna = houseOf(marsSid, ascSid);
+  const marsHouseMoon = houseOf(marsSid, moonSid);
+  const manglikFromLagna = MANGLIK_HOUSES.includes(marsHouseLagna);
+  const manglikFromMoon = MANGLIK_HOUSES.includes(marsHouseMoon);
+
+  const cnJD = chineseNewYear(new Date(Date.UTC(+dob.slice(0, 4), +dob.slice(5, 7) - 1, +dob.slice(8, 10))).getUTCFullYear());
+  const bornAfterCNY = jd >= cnJD;
 
   return {
+    dob, tob: tob || '',
     hasTime,
-    sun: { sign: SIGNS[signOf(sunTrop)], lon: sunTrop },
-    moon: { sign: SIGNS[signOf(moonSid)], lon: moonSid, nak: NAK[nak], nakIndex: nak, pada: padaOf(moonSid), lord: NAK_LORD[nak],
+    western: {
+      sun: SIGNS[signOf(sunLongitude(jd))],
+      moon: SIGNS[signOf(moonLongitude(jd))],
+      lagna: SIGNS[signOf(ascendant(jd, p.lat, p.lon))],
+      venus: SIGNS[signOf(geoLongitude('venus', jd))],
+      mars: SIGNS[signOf(geoLongitude('mars', jd))]
+    },
+    systems: {
+      mayan: tzolkin(jd),
+      celtic: celtic(dob),
+      burmese: burmese(dob, tob),
+      thirteen: thirteenSign(sunLongitude(jd)),
+      chineseYearStart: bornAfterCNY
+    },
+    place: { known: p.known, lat: p.lat, lon: p.lon, tz: p.tz, name: place || '' },
+    sun: { sign: SIGNS[signOf(sunSid)], lon: sunSid, house: houseOf(sunSid, ascSid) },
+    moon: { sign: SIGNS[signOf(moonSid)], lon: moonSid, house: houseOf(moonSid, ascSid),
+            nak: NAK[nak], nakIndex: nak, pada: padaOf(moonSid), lord: NAK_LORD[nak],
             nakRange: hasTime ? [NAK[nak]] : [...new Set([NAK[nakLow], NAK[nak], NAK[nakHigh]])] },
-    venus: { sign: SIGNS[signOf(venusTrop)] },
-    mars: { sign: SIGNS[signOf(marsTrop)] },
+    venus: { sign: SIGNS[signOf(venusSid)], house: houseOf(venusSid, ascSid) },
+    mars: { sign: SIGNS[signOf(marsSid)], house: marsHouseLagna, houseFromMoon: marsHouseMoon },
+    rahu: { sign: SIGNS[signOf(rahuSid)], house: houseOf(rahuSid, ascSid) },
+    ketu: { sign: SIGNS[signOf(ketuSid)], house: houseOf(ketuSid, ascSid) },
+    lagna: { sign: SIGNS[signOf(ascSid)], lon: ascSid, lord: SIGN_LORD[signOf(ascSid)] },
+    manglik: { fromLagna: manglikFromLagna, fromMoon: manglikFromMoon, is: manglikFromLagna || manglikFromMoon,
+               note: !hasTime ? 'birth time missing — Mars house is a guess' : (p.known ? '' : 'birth place not recognised — lagna may be off') },
     rashi: signOf(moonSid),
-    element: ELEMENT[signOf(sunTrop) % 4],
-    modality: MODALITY[signOf(sunTrop) % 3],
+    element: ELEMENT[signOf(sunSid) % 4],
+    modality: MODALITY[signOf(sunSid) % 3],
     numerology: numerology(dob, name),
-    chinese: chinese(dob),
+    chinese: chineseOn(dob, bornAfterCNY),
     ayanamsa: ay
   };
 }
 
 
-  return { chart, ashtakoota, numerology, numPair, chinese, chinesePair, julianDay, jdFromLocal, moonLongitude, sunLongitude, geoLongitude, SIGNS, NAK, SIGN_LORD, ELEMENT, MODALITY, PLANET_OF, ANIMALS, ELEMENTS_CN };
+  return { chart, ashtakoota, placeOf, CITIES, tzolkin, celtic, burmese, thirteenSign, chineseNewYear, numerology, numPair, chineseOn, chinesePair, julianDay, jdFromLocal, moonLongitude, sunLongitude, geoLongitude, SIGNS, NAK, SIGN_LORD, ELEMENT, MODALITY, PLANET_OF, ANIMALS, ELEMENTS_CN };
 })();
 
 
@@ -547,13 +755,23 @@ function pairParams(A, B) {           // A, B = user records
   const add = (name, group, v) => { if (v != null && !Number.isNaN(v)) out.push({ name, group, v: c01(v) }); };
 
   /* ---- astrology ---- */
-  add('Sun sign', 'Astro', signPair(ca.sun.sign, cb.sun.sign));
-  add('Moon sign', 'Astro', signPair(ca.moon.sign, cb.moon.sign));
+  add('Vedic sun', 'Astro', signPair(ca.sun.sign, cb.sun.sign));
+  add('Vedic moon', 'Astro', signPair(ca.moon.sign, cb.moon.sign));
+  if (ca.western && cb.western) {
+    add('Western sun', 'Astro', signPair(ca.western.sun, cb.western.sun));
+    add('Western moon', 'Astro', signPair(ca.western.moon, cb.western.moon));
+    add('Rising sign', 'Astro', signPair(ca.western.lagna, cb.western.lagna));
+  }
   add('Nakshatra', 'Astro', nakPair(ca, cb));
   add('Venus', 'Astro', signPair(ca.venus.sign, cb.venus.sign));
   add('Mars', 'Astro', signPair(ca.mars.sign, cb.mars.sign));
   add('Element', 'Astro', ca.element === cb.element ? 1 : ELEM_OK[ca.element].includes(cb.element) ? 0.85 : 0.45);
   add('Modality', 'Astro', ca.modality === cb.modality ? 0.6 : 0.9);
+  if (ca.lagna && cb.lagna) add('Lagna', 'Astro', signPair(ca.lagna.sign, cb.lagna.sign));
+  if (ca.manglik && cb.manglik) {
+    const x = ca.manglik.is, y = cb.manglik.is;
+    add('Manglik', 'Astro', x === y ? 1 : 0.45);
+  }
   const male = A.gender === 'Man' ? ca : cb, female = A.gender === 'Man' ? cb : ca;
   add('Guna milan', 'Astro', astro.ashtakoota(male, female).pct);
 
@@ -568,6 +786,12 @@ function pairParams(A, B) {           // A, B = user records
 
   /* ---- chinese ---- */
   add('Chinese', 'Chinese', astro.chinesePair(ca.chinese, cb.chinese));
+  if (ca.systems && cb.systems) {
+    add('Mayan tone', 'Other', ca.systems.mayan.tone === cb.systems.mayan.tone ? 1 : 0.5);
+    add('Mayan day', 'Other', ca.systems.mayan.mayan === cb.systems.mayan.mayan ? 1 : 0.55);
+    add('Celtic', 'Other', ca.systems.celtic === cb.systems.celtic ? 1 : 0.55);
+    add('Burmese day', 'Other', ca.systems.burmese === cb.systems.burmese ? 1 : 0.55);
+  }
 
   /* ---- personality (shared tests only) ---- */
   if (ra.big5 && rb.big5) {
@@ -747,8 +971,7 @@ function createServer() {
     try {
       if (method === 'GET' && (p === '/' || p === '/index.html')) {
         const a = path.join(__dirname, 'index.html'), b = path.join(PUBLIC_DIR, 'index.html');
-        const file = fs.existsSync(a) ? a : b;
-        return send(res, 200, fs.readFileSync(file, 'utf8'));
+        return send(res, 200, fs.readFileSync(fs.existsSync(a) ? a : b, 'utf8'));
       }
       if (method === 'GET' && p === '/api/health') return send(res, 200, { ok: true, users: Object.keys(db.users).length, queued: db.queue.length, chats: Object.keys(db.chats).length });
 
@@ -782,7 +1005,7 @@ function createServer() {
           id: uid(), email, salt, hash, name, status, gender, pref, dob, tob, city,
           createdAt: now(), lastSeen: now(), results: {}, cibilAdj: 0,
           stats: { chats: 0, messages: 0, skips: 0, leaves: 0, skipped: 0, reported: 0 },
-          chart: astro.chart({ dob, tob, name })
+          chart: astro.chart({ dob, tob, name, place: city })
         };
         db.users[user.id] = user;
         save();
@@ -808,7 +1031,7 @@ function createServer() {
 
       if (method === 'GET' && p === '/api/me') {
         return send(res, 200, {
-          user: publicUser(me), email: me.email, status: me.status,
+          user: publicUser(me), email: me.email, status: me.status, tob: me.tob || '',
           chart: me.chart, results: me.results,
           cibil: { score: cibilOf(me), tier: tierOf(cibilOf(me)).name, slots: slotsOf(me), next: TIERS.find(t => t.min > cibilOf(me)) || null },
           stats: me.stats
@@ -817,11 +1040,25 @@ function createServer() {
 
       if (method === 'POST' && p === '/api/profile') {
         const b = await readBody(req);
+        let recompute = false;
         if (typeof b.status === 'string') me.status = b.status.trim().slice(0, 50);
-        if (typeof b.name === 'string' && b.name.trim()) me.name = b.name.trim().slice(0, 24);
+        if (typeof b.name === 'string' && b.name.trim()) { me.name = b.name.trim().slice(0, 24); recompute = true; }
         if (['Men', 'Women', 'Anyone'].includes(b.pref)) me.pref = b.pref;
+        if (typeof b.dob === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(b.dob) && b.dob !== me.dob) {
+          if (ageOf(b.dob) < 18) return bad(res, 400, 'You must be 18 or older.');
+          if (ageOf(b.dob) > 100) return bad(res, 400, 'That date does not look right.');
+          me.dob = b.dob; recompute = true;
+        }
+        if (typeof b.tob === 'string' && b.tob !== me.tob) {
+          me.tob = /^\d{2}:\d{2}$/.test(b.tob) ? b.tob : '';
+          recompute = true;
+        }
+        if (typeof b.city === 'string' && b.city.trim() && b.city.trim() !== me.city) {
+          me.city = b.city.trim().slice(0, 40); recompute = true;
+        }
+        if (recompute) me.chart = astro.chart({ dob: me.dob, tob: me.tob, name: me.name, place: me.city });
         save();
-        return send(res, 200, { user: publicUser(me) });
+        return send(res, 200, { user: publicUser(me), chart: me.chart, cibil: { score: cibilOf(me), tier: tierOf(cibilOf(me)).name, slots: slotsOf(me) } });
       }
 
       if (method === 'GET' && p === '/api/tests') return send(res, 200, { tests: publicTests() });
