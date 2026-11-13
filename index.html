@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f5f2ec">
+<title>Milao</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F4EBDC; --surface:#FCF7EC; --surface-2:#F0E7D6;
+  --ink:#2A2119; --dim:#6E5F4C; --faint:#9A8A73;
+  --line:rgba(42,33,25,.15); --line-soft:rgba(42,33,25,.08);
+  --teal:#924F27; --teal-soft:#F1E0CE;
+  --green:#4E6B3C; --yellow:#A8761E; --red:#8E3B2E;
+  --green-soft:#E4E8D6; --yellow-soft:#F4E6CB; --red-soft:#F3DED7;
+  --serif:"Instrument Serif",Georgia,serif;
+  --sans:"IBM Plex Sans","Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0f1413; --surface:#171d1c; --surface-2:#1c2322;
+    --ink:#eef3f1; --dim:#9aa8a3; --faint:#76837e;
+    --line:rgba(238,243,241,.14); --line-soft:rgba(238,243,241,.07);
+    --teal:#5ec9b6; --teal-soft:#12312c;
+    --green:#5fc79b; --yellow:#e0b25e; --red:#e58b95;
+    --green-soft:#14302a; --yellow-soft:#2f2615; --red-soft:#33201f;
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;overscroll-behavior:none}
+@media (min-width:520px){body{background:var(--surface-2);display:flex;justify-content:center}}
+#app{width:100%;max-width:480px;background:var(--bg);min-height:100dvh;display:flex;flex-direction:column;position:relative}
+@media (min-width:520px){#app{box-shadow:0 0 0 1px var(--line)}}
+main{flex:1;padding:16px 16px 92px;overflow-y:auto}
+h1,h2,h3{font-family:var(--serif);font-weight:400;letter-spacing:-.01em;margin:0}
+h1{font-size:30px;line-height:1.08} h2{font-size:22px;line-height:1.15} h3{font-size:17px}
+p{margin:0}
+.lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint)}
+.dim{color:var(--dim)} .small{font-size:12.5px} .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.top{display:flex;align-items:center;gap:10px;padding:13px 16px 0}
+.brand{font-family:var(--serif);font-size:19px}
+.brand i{color:var(--teal);font-style:normal}
+.grow{flex:1}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:14px;margin-bottom:11px}
+.card.flat{background:var(--surface-2)}
+.hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:9px}
+button{font-family:var(--sans);font-size:14.5px;cursor:pointer;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:11px 14px;transition:transform .1s}
+button:active{transform:scale(.985)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.p{background:var(--teal);color:#fff;border-color:var(--teal);font-weight:600}
+.b{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
+.ghost{background:transparent}
+.w{width:100%}
+.row{display:flex;gap:8px}.row>*{flex:1}
+label.f{display:block;margin-bottom:11px}
+label.f span{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
+input,select,textarea{width:100%;font-family:var(--sans);font-size:15px;padding:11px 12px;border-radius:11px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);outline-offset:1px}
+textarea{resize:vertical;min-height:60px}
+.seg{display:flex;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.seg button{flex:1;border:0;border-radius:0;background:var(--surface-2);color:var(--dim);font-size:14px}
+.seg button[aria-pressed=true]{background:var(--teal-soft);color:var(--teal);font-weight:600}
+.chip{font-family:var(--mono);font-size:9.5px;padding:3px 8px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip.t{background:var(--teal-soft);border-color:transparent;color:var(--teal)}
+/* slots */
+.slots{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.slot{border:1px solid var(--line);border-radius:16px;background:var(--surface);min-height:132px;padding:12px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;color:var(--ink);cursor:pointer;position:relative;overflow:hidden}
+.slot.full{grid-column:1/-1;min-height:auto}
+.slot.empty{border-style:dashed;background:transparent}
+.slot.searching{background:var(--teal-soft);border-color:transparent}
+.slot.chat{background:var(--surface);border-color:var(--line)}
+.slot .idx{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--faint);text-transform:uppercase}
+.slot .big{font-family:var(--serif);font-size:17px;line-height:1.15;margin-top:2px}
+.slot .sub{font-size:11px;color:var(--dim);margin-top:3px}
+.badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:99px;background:var(--teal-soft);color:var(--teal)}
+.scorepill{font-family:var(--mono);font-size:15px;font-weight:500;padding:2px 9px;border-radius:99px}
+.s-green{background:var(--green-soft);color:var(--green)}
+.s-yellow{background:var(--yellow-soft);color:var(--yellow)}
+.s-red{background:var(--red-soft);color:var(--red)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--teal);animation:pulse 1.4s infinite}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.dot{animation:none}}
+/* chat */
+.chatwrap{position:fixed;inset:0;max-width:480px;margin:0 auto;background:var(--bg);display:flex;flex-direction:column;z-index:30}
+.chathead{padding:12px 14px;border-bottom:1px solid var(--line);background:var(--surface);display:flex;gap:10px;align-items:center}
+.msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
+.m{max-width:82%;padding:9px 12px;border-radius:14px;font-size:14.5px;line-height:1.4;background:var(--surface);border:1px solid var(--line);align-self:flex-start}
+.m.me{align-self:flex-end;background:var(--teal);color:#fff;border-color:var(--teal)}
+.m .t{display:block;font-family:var(--mono);font-size:8.5px;opacity:.55;margin-top:3px}
+.composer{display:flex;gap:8px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--surface)}
+.composer input{flex:1}
+.ended{text-align:center;padding:18px;color:var(--dim);font-size:13px}
+/* misc */
+nav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;display:flex;background:var(--surface);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom));z-index:20}
+nav button{flex:1;border:0;background:none;padding:7px 2px;color:var(--faint);font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;display:grid;gap:3px;justify-items:center;border-radius:10px}
+nav button svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.6}
+nav button[aria-pressed=true]{color:var(--teal)}
+#toast{position:fixed;left:50%;bottom:84px;transform:translate(-50%,12px);background:var(--ink);color:var(--bg);font-size:13px;padding:9px 14px;border-radius:99px;opacity:0;transition:.22s;pointer-events:none;z-index:60;font-family:var(--mono);white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+.sheet{position:fixed;inset:0;background:rgba(10,14,13,.45);display:flex;align-items:flex-end;z-index:50}
+.sheet .inner{background:var(--surface);width:100%;max-width:480px;margin:0 auto;border-radius:18px 18px 0 0;padding:18px}
+.opt{display:block;width:100%;text-align:left;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface);margin-bottom:8px;font-size:14.5px;line-height:1.35;color:var(--ink)}
+.opt[aria-pressed=true]{border-color:var(--teal);background:var(--teal-soft);font-weight:600;color:var(--teal)}
+.scale{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.scale button{padding:14px 2px;font-family:var(--mono);font-size:13px;color:var(--dim)}
+.scale button[aria-pressed=true]{background:var(--teal-soft);border-color:var(--teal);color:var(--teal);font-weight:600}
+.slegend{display:flex;justify-content:space-between;font-family:var(--mono);font-size:8.5px;text-transform:uppercase;color:var(--faint);margin-top:5px}
+.q{font-family:var(--serif);font-size:21px;line-height:1.25;margin:12px 0 16px;min-height:60px}
+.prog{height:6px;border-radius:99px;background:var(--line-soft);overflow:hidden}
+.prog>i{display:block;height:100%;background:var(--teal);border-radius:99px;transition:width .4s}
+.bar{height:6px;border-radius:99px;background:var(--line-soft);overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:99px;background:var(--teal)}
+.tr{display:grid;grid-template-columns:96px 1fr 26px;gap:8px;align-items:center;font-size:11.5px;margin-bottom:6px}
+.tr span:first-child{font-family:var(--mono);font-size:9px;text-transform:uppercase;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tr span:last-child{text-align:right;font-family:var(--mono);font-size:10px;color:var(--faint)}
+.kv{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:5px 0}
+.kv b{font-family:var(--mono);font-weight:500;font-size:12.5px}
+.tiny{font-size:11px;color:var(--faint);line-height:1.5}
+hr.sep{border:0;border-top:1px solid var(--line-soft);margin:12px 0}
+.back{background:none;border:0;padding:0;color:var(--dim);font-size:13px;margin-bottom:10px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="top" id="top"></div>
+  <main id="main"></main>
+  <nav id="nav"></nav>
+</div>
+<div id="toast"></div>
+<div id="sheet"></div>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const TABS = [
+  ['home', 'Slots', '<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/>'],
+  ['tests', 'Character', '<path d="M9 4h6v3H9z"/><path d="M7 5H5v16h14V5h-2"/><path d="M9 12h6M9 16h4"/>'],
+  ['profile', 'Me', '<path d="M12 12a4 4 0 100-8 4 4 0 000 8z"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/>']
+];
+
+let S = {
+  token: localStorage.getItem('milao_token') || null,
+  tab: 'home', authMode: 'signup', me: null, tests: null,
+  state: null, chat: null, run: null, poll: null, chatPoll: null, busy: false, gender: 'Woman', pref: 'Men'
+};
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    method: opts.method || 'GET',
+    headers: Object.assign({ 'Content-Type': 'application/json' }, S.token ? { Authorization: 'Bearer ' + S.token } : {}),
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  let j = {}; try { j = await res.json(); } catch {}
+  if (!res.ok) { const e = new Error(j.error || 'Something went wrong'); e.code = res.status; throw e; }
+  return j;
+}
+let tt;
+function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 2000); }
+
+/* ------------------------------ render ------------------------------ */
+let lastKey = null;
+function render() {
+  const key = [S.token ? 1 : 0, S.tab, S.chat ? S.chat.id : '', S.run ? (S.run.test.id + S.run.i + (S.run.result ? 'r' : '')) : ''].join('|');
+  const fresh = key !== lastKey;
+  lastKey = key;
+  const y = window.scrollY || document.documentElement.scrollTop || 0;
+  const my = $('#main') ? $('#main').scrollTop : 0;
+  const focused = document.activeElement && document.activeElement.id === 'msgbox';
+
+  $('#top').innerHTML = topBar();
+  $('#main').innerHTML = !S.token ? viewAuth() : (S.chat ? '' : viewTab());
+  $('#nav').innerHTML = S.token && !S.chat ? navBar() : '';
+  $('#nav').style.display = S.token && !S.chat ? 'flex' : 'none';
+  if (S.chat) $('#main').insertAdjacentHTML('beforeend', viewChat());
+
+  const box = $('#msgbox');
+  if (box) { box.value = S.draft || ''; if (focused) box.focus(); }
+  if (fresh) { window.scrollTo(0, 0); if ($('#main')) $('#main').scrollTop = 0; }
+  else { window.scrollTo(0, y); if ($('#main')) $('#main').scrollTop = my; }
+}
+const topBar = () => `<span class="brand">Milao<i>.</i></span><span class="grow"></span>
+  ${S.me ? `<span class="badge">${esc(S.me.cibil.tier)} · ${S.me.cibil.slots} slots</span>` : `<span class="lbl">strangers, sorted</span>`}`;
+const navBar = () => TABS.map(([id, label, icon]) =>
+  `<button data-act="tab" data-tab="${id}" aria-pressed="${S.tab === id}">
+     <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>${label}</button>`).join('');
+function viewTab() {
+  if (S.run) return S.run.result ? viewResult() : viewRun();
+  if (S.tab === 'home') return viewHome();
+  if (S.tab === 'tests') return viewTests();
+  return viewProfile();
+}
+
+/* ------------------------------ auth ------------------------------ */
+function viewAuth() {
+  const su = S.authMode === 'signup';
+  return `
+    <h1 style="margin-bottom:6px">${su ? 'Strangers, sorted<br>by character.' : 'Welcome back.'}</h1>
+    <p class="dim small" style="margin:8px 0 16px">${su ? 'Fill in your birth details and your character, and we will show you how well you match the person you are about to talk to.' : 'Sign in to your slots.'}</p>
+    <div class="seg" style="margin-bottom:14px">
+      <button data-act="authmode" data-v="signup" aria-pressed="${su}">Sign up</button>
+      <button data-act="authmode" data-v="login" aria-pressed="${!su}">Sign in</button>
+    </div>
+    ${su ? `
+      <label class="f"><span>email — never shown to anyone</span><input id="a-email" type="email" placeholder="you@example.com"></label>
+      <label class="f"><span>password</span><input id="a-pass" type="password" placeholder="8 characters minimum"></label>
+      <div class="row">
+        <label class="f"><span>name people see</span><input id="a-name" maxlength="24" placeholder="Aarav"></label>
+        <label class="f"><span>your age</span><input id="a-dob" type="date" value="1998-01-01"></label>
+      </div>
+      <label class="f"><span>status — 50 characters, the only thing they read before you speak</span><input id="a-status" maxlength="50" placeholder="Ask me about filter coffee"></label>
+      <div class="row">
+        <label class="f"><span>i am</span>
+          <div class="seg" id="a-gender"><button data-g="Woman" aria-pressed="true">Woman</button><button data-g="Man" aria-pressed="false">Man</button></div>
+        </label>
+        <label class="f"><span>show me</span>
+          <div class="seg" id="a-pref"><button data-p="Men" aria-pressed="true">Men</button><button data-p="Women" aria-pressed="false">Women</button><button data-p="Anyone" aria-pressed="false">Anyone</button></div>
+        </label>
+      </div>
+      <div class="row">
+        <label class="f"><span>birth time — optional</span><input id="a-tob" type="time"></label>
+        <label class="f"><span>birth place</span><input id="a-city" placeholder="Bengaluru" value="Bengaluru"></label>
+      </div>
+      <p class="tiny" style="margin:-2px 0 14px">Birth place is required; birth time sharpens the moon and nakshatra. 18+ only.<br><span style="opacity:.6">build v8</span></p>
+      <button class="p w" data-act="signup">Create my character</button>
+    ` : `
+      <label class="f"><span>email</span><input id="a-email" type="email" placeholder="you@example.com"></label>
+      <label class="f"><span>password</span><input id="a-pass" type="password" placeholder="your password"></label>
+      <button class="p w" data-act="login">Sign in</button>
+    `}`;
+}
+
+/* ------------------------------ home ------------------------------ */
+function viewHome() {
+  const st = S.state;
+  if (!st) return `<p class="lbl" style="text-align:center;padding:40px 0">loading</p>`;
+  const done = Object.keys(S.me.results || {}).length;
+  return `
+    ${done < 9 ? `<div class="card" style="background:var(--teal-soft);border-color:transparent">
+      <div class="hd"><h3 style="color:var(--teal)">Your character is ${Math.round(done/9*100)}% built</h3><span class="lbl" style="color:var(--teal)">${done}/9</span></div>
+      <p class="small" style="margin-bottom:10px">Every test you finish sharpens the match score and lifts your tier. Finish them to unlock more slots.</p>
+      <button class="p w" data-act="tab" data-tab="tests">Continue</button>
+    </div>` : ''}
+    <div class="hd" style="margin:2px 0 10px"><h2>Your slots</h2><span class="lbl">${st.queueSize} waiting now</span></div>
+    <div class="slots">${st.slots.map(slotCard).join('')}</div>
+    <p class="tiny">Tap a free slot to join the queue — each slot keeps its own place in line. You are matched with whoever has been waiting longest who wants someone like you. Minimise a chat with ⌄ and it keeps running while you use your other slots.</p>`;
+}
+
+function slotCard(s) {
+  if (s.chatId) {
+    const band = s.band || 'yellow';
+    return `<button class="slot chat full" data-act="openchat" data-id="${s.chatId}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="min-width:0">
+          <div class="idx">slot ${s.index + 1} · talking</div>
+          <div class="big">${esc(s.peer?.name || 'Someone')}</div>
+          <div class="sub">${esc(s.peer?.status || '')}</div>
+        </div>
+        <span class="scorepill s-${band}">${s.score}</span>
+      </div>
+      <div class="sub" style="margin-top:8px">
+        ${s.lastFrom === 'them' ? '<span class="chip t" style="margin-right:6px">new</span>' : ''}
+        ${s.messages ? s.messages + ' message' + (s.messages > 1 ? 's' : '') : 'Say something first'}
+      </div>
+    </button>`;
+  }
+  if (s.queued) {
+    return `<button class="slot searching" data-act="unqueue" data-slot="${s.index}">
+      <div class="idx">slot ${s.index + 1}</div>
+      <div><span class="dot"></span><b style="font-size:13px">Searching…</b></div>
+      <div class="sub">${s.position ? `queue #${s.position}` : 'waiting'} · tap to cancel</div>
+    </button>`;
+  }
+  return `<button class="slot empty" data-act="queue" data-slot="${s.index}">
+    <div class="idx">slot ${s.index + 1}</div>
+    <div class="big" style="color:var(--teal)">Find my match</div>
+    <div class="sub">free</div>
+  </button>`;
+}
+
+/* ------------------------------ chat ------------------------------ */
+function viewChat() {
+  const c = S.chat;
+  const band = c.band || 'yellow';
+  return `<div class="chatwrap">
+    <div class="chathead">
+      <button class="ghost" data-act="closechat" style="padding:6px 11px;font-size:17px" title="Minimise — the chat keeps running">⌄</button>
+      <div style="min-width:0;flex:1">
+        <div style="font-weight:600;font-size:15px;line-height:1.2">${esc(c.peer?.name || '')}</div>
+        <div class="sub" style="font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.peer?.status || '')}</div>
+      </div>
+      <span class="scorepill s-${band}">${c.score}</span>
+      <button class="ghost" data-act="reportmenu" style="padding:6px 9px">⋯</button>
+    </div>
+    <div class="msgs" id="msgs">
+      ${c.messages.length ? c.messages.map(m => `<div class="m ${m.from === 'me' ? 'me' : ''}">${esc(m.text)}<span class="t">${new Date(m.at).toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit'})}</span></div>`).join('') : ''}
+      ${c.endedAt ? `<div class="ended">${c.endedBy === 'me' ? 'You left the chat.' : 'This person left the chat.'}<br><button class="p" style="margin-top:12px" data-act="closechat">Find my match</button></div>` : ''}
+    </div>
+    ${c.endedAt ? '' : `<div class="composer">
+      <input id="msgbox" placeholder="Say something real" autocomplete="off">
+      <button class="p" data-act="sendmsg">Send</button>
+    </div>`}
+  </div>`;
+}
+
+/* ------------------------------ tests ------------------------------ */
+function viewTests() {
+  const done = new Set(Object.keys(S.me.results || {}));
+  return `<h1 style="margin-bottom:4px">Character</h1>
+    <p class="dim small" style="margin-bottom:14px">Nine tests. Each one feeds the match score and your tier.</p>
+    ${(S.tests || []).map(t => `<button class="card" style="display:flex;gap:12px;align-items:center;width:100%;text-align:left;cursor:pointer" data-act="opentest" data-id="${t.id}">
+      <span style="width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:${done.has(t.id) ? 'var(--teal)' : 'var(--teal-soft)'};color:${done.has(t.id) ? '#fff' : 'var(--teal)'};font-family:var(--mono);font-size:12px;flex:0 0 auto">${done.has(t.id) ? '✓' : t.count}</span>
+      <span style="min-width:0;flex:1"><b style="font-size:14.5px">${esc(t.title)}</b><span class="sub" style="display:block;font-size:11.5px;color:var(--dim);margin-top:2px">${esc(t.blurb)}</span></span>
+      <span class="lbl">${done.has(t.id) ? 'redo' : t.weight + '%'}</span>
+    </button>`).join('')}`;
+}
+function viewRun() {
+  const r = S.run, t = r.test, i = r.i, item = t.items[i];
+  const ans = r.answers[item.id] != null;
+  const body = t.kind === 'scale'
+    ? `<div class="scale">${[1,2,3,4,5].map(v => `<button data-act="ans" data-v="${v}" aria-pressed="${r.answers[item.id] === v}">${v}</button>`).join('')}</div>
+       <div class="slegend"><span>${esc(t.scale[0])}</span><span>${esc(t.scale[4])}</span></div>`
+    : item.options.map((o, oi) => `<button class="opt" data-act="ans" data-v="${oi}" aria-pressed="${r.answers[item.id] === oi}">${esc(o)}</button>`).join('');
+  return `<button class="back" data-act="closetest">← ${esc(t.title)}</button>
+    <div class="hd"><span class="lbl">${i + 1} of ${t.items.length}</span><span class="lbl">${t.weight}% of score</span></div>
+    <div class="prog"><i style="width:${Math.round(i / t.items.length * 100)}%"></i></div>
+    <div class="q">${esc(item.text)}</div>${body}
+    <div class="row" style="margin-top:14px">
+      <button class="ghost" data-act="prevq" ${i === 0 ? 'disabled' : ''}>Back</button>
+      <button class="p" data-act="nextq" ${ans ? '' : 'disabled'}>${i === t.items.length - 1 ? 'Finish' : 'Next'}</button>
+    </div>`;
+}
+function viewResult() {
+  const { test: t, result: r, cibil } = S.run;
+  const s = r.summary || {};
+  const bits = [];
+  if (t.id === 'type') bits.push('Type ' + s.type);
+  if (t.id === 'attach') bits.push('Attachment: ' + s.style);
+  if (t.id === 'enneagram') bits.push('Enneagram type ' + s.ennea);
+  if (t.id === 'love') bits.push('Love language: ' + s.love);
+  if (t.id === 'disc') bits.push('Social style: ' + s.disc);
+  if (t.id === 'humour') bits.push('Humour: ' + s.humour);
+  if (t.id === 'conflict') bits.push('Conflict: ' + s.conflict);
+  if (t.id === 'chrono') bits.push('Body clock: ' + s.chrono);
+  return `<div class="card" style="text-align:center;background:var(--teal-soft);border-color:transparent">
+      <p class="lbl" style="color:var(--teal)">${esc(t.title)} · done</p>
+      <h1 style="font-size:34px;margin:8px 0 2px">${esc(bits[0] || 'Added')}</h1>
+      <p class="small" style="color:var(--teal)">tier ${esc(cibil.tier)} · ${cibil.slots} slots</p>
+    </div>
+    <div class="card"><p class="small dim">Your character updated. The next person you are matched with will be scored on it.</p></div>
+    <button class="p w" data-act="closetest">Back</button>`;
+}
+
+/* ------------------------------ profile ------------------------------ */
+function viewProfile() {
+  const m = S.me, c = m.chart, n = c.numerology, r = m.results || {};
+  const b5 = r.big5?.dims || {};
+  const lbl = { O:'Openness', C:'Conscientious', E:'Extraversion', A:'Agreeable', N:'Stability' };
+  return `<div class="card">
+    <div class="hd"><h2>${esc(m.user.name)}</h2><span class="lbl">${esc(m.user.city)} · ${m.user.age}</span></div>
+    <div class="chips"><span class="chip t">${esc(m.cibil.tier)}</span><span class="chip">${m.cibil.slots} slots</span><span class="chip">${esc(m.user.gender)}</span><span class="chip">sees ${esc(m.user.pref.toLowerCase())}</span></div>
+    <hr class="sep">
+    <p class="small dim" style="margin-bottom:8px">"${esc(m.status || 'no status yet')}"</p>
+    <div class="row">
+      <button class="ghost" data-act="editprofile">Edit details</button>
+      <button class="ghost" data-act="logout">Sign out</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="hd"><h3>Your tier</h3><span class="lbl">${esc(m.cibil.tier)}</span></div>
+    <div class="prog"><i style="width:${Math.min(100, Math.round((m.cibil.score - (m.cibil.next ? m.cibil.next.min - 100 : m.cibil.score)) / 100 * 100))}%"></i></div>
+    <p class="tiny" style="margin-top:8px">${m.cibil.next ? `Keep replying and finishing tests to reach ${m.cibil.next.name} (${m.cibil.next.slots} slots).` : 'Top tier. Ten slots.'} We do not show the number — only the tier.</p>
+    <div class="kv"><span class="dim">Chats</span><b>${m.stats.chats || 0}</b></div>
+    <div class="kv"><span class="dim">Messages</span><b>${m.stats.messages || 0}</b></div>
+    <div class="kv"><span class="dim">Times you left early</span><b>${m.stats.skips || 0}</b></div>
+  </div>
+
+  <div class="card">
+    <div class="hd"><h3>Astrology</h3><span class="lbl">${c.hasTime ? 'with birth time' : 'no birth time'}</span></div>
+    <p class="lbl" style="margin:2px 0 6px">western · tropical</p>
+    <div class="kv"><span class="dim">Sun</span><b>${esc(c.western.sun)}</b></div>
+    <div class="kv"><span class="dim">Moon</span><b>${esc(c.western.moon)}</b></div>
+    <div class="kv"><span class="dim">Rising</span><b>${esc(c.western.lagna)}</b></div>
+    <div class="kv"><span class="dim">Venus · Mars</span><b>${esc(c.western.venus)} · ${esc(c.western.mars)}</b></div>
+    <hr class="sep">
+    <p class="lbl" style="margin:2px 0 6px">vedic · sidereal</p>
+    <div class="kv"><span class="dim">Lagna</span><b>${esc(c.lagna.sign)} · lord ${esc(c.lagna.lord)}</b></div>
+    <div class="kv"><span class="dim">Sun</span><b>${esc(c.sun.sign)} · house ${c.sun.house}</b></div>
+    <div class="kv"><span class="dim">Moon</span><b>${esc(c.moon.sign)} · house ${c.moon.house}</b></div>
+    <div class="kv"><span class="dim">Nakshatra</span><b>${esc(c.moon.nak)} · pada ${c.moon.pada}</b></div>
+    <div class="kv"><span class="dim">Nakshatra lord</span><b>${esc(c.moon.lord)}</b></div>
+    <div class="kv"><span class="dim">Venus</span><b>${esc(c.venus.sign)} · house ${c.venus.house}</b></div>
+    <div class="kv"><span class="dim">Mars</span><b>${esc(c.mars.sign)} · house ${c.mars.house}</b></div>
+    <div class="kv"><span class="dim">Rahu · Ketu</span><b>${esc(c.rahu.sign)} · ${esc(c.ketu.sign)}</b></div>
+    <div class="kv"><span class="dim">Manglik</span><b>${c.manglik.is ? 'yes · Mars in house ' + c.mars.house : 'no'}</b></div>
+    <div class="kv"><span class="dim">Element · modality</span><b>${esc(c.element)} · ${esc(c.modality)}</b></div>
+    <p class="tiny" style="margin-top:6px">${esc(c.place && c.place.known ? c.place.name : 'place not recognised')} · ${c.place ? c.place.lat.toFixed(2) + '°, ' + c.place.lon.toFixed(2) + '°' : ''}${!c.hasTime ? ' · no birth time, ascendant approximate' : ''}</p>
+    ${!c.hasTime ? `<p class="tiny" style="margin-top:6px">Without a birth time the moon could be any of: ${c.moon.nakRange.map(esc).join(', ')}.</p>` : ''}
+    <p class="tiny" style="margin-top:6px">Western signs are tropical, Vedic ones sidereal — that is why they sit about a sign apart. Both are correct; they are different zodiacs.</p>
+  </div>
+
+  <div class="card">
+    <div class="hd"><h3>Other systems</h3><span class="lbl">${c.systems ? 'computed' : '—'}</span></div>
+    ${c.systems ? `
+    <div class="kv"><span class="dim">Mayan (Tzolkin)</span><b>${esc(c.systems.mayan.mayan)} · tone ${c.systems.mayan.tone}</b></div>
+    <div class="kv"><span class="dim">Aztec (Tonalpohualli)</span><b>${esc(c.systems.mayan.aztec)}</b></div>
+    <div class="kv"><span class="dim">Celtic tree</span><b>${esc(c.systems.celtic)}</b></div>
+    <div class="kv"><span class="dim">Burmese day</span><b>${esc(c.systems.burmese)}</b></div>
+    <div class="kv"><span class="dim">13-sign (real sky)</span><b>${esc(c.systems.thirteen)}</b></div>` : ''}
+    <div class="kv"><span class="dim">Chinese</span><b>${esc(c.chinese.element)} ${esc(c.chinese.animal)}</b></div>
+    <p class="tiny" style="margin-top:6px">Chinese animals follow the actual new-year date, so January births fall in the previous year's animal.</p>
+  </div>
+
+  <div class="card">
+    <div class="hd"><h3>Numerology</h3><span class="lbl">from your birth date</span></div>
+    <div class="kv"><span class="dim">Mulank</span><b>${n.mulank}</b></div>
+    <div class="kv"><span class="dim">Bhagyank</span><b>${n.bhagyank}</b></div>
+    ${n.namank ? `<div class="kv"><span class="dim">Namank</span><b>${n.namank}</b></div>` : ''}
+    <div class="kv"><span class="dim">Lo Shu filled</span><b>${Object.values(n.counts).filter(x => x > 0).length}/9</b></div>
+  </div>
+
+  <div class="card">
+    <div class="hd"><h3>Personality</h3><span class="lbl">${Object.keys(r).length}/9 tests</span></div>
+    ${Object.keys(b5).length ? ['O','C','E','A','N'].map(k => `<div class="tr"><span>${lbl[k]}</span><span class="bar"><i style="width:${Math.round(b5[k]*100)}%"></i></span><span>${Math.round(b5[k]*100)}</span></div>`).join('') : '<p class="small dim">No personality data yet.</p>'}
+    <hr class="sep">
+    <div class="kv"><span class="dim">Type</span><b>${r.type?.summary?.type || '—'}</b></div>
+    <div class="kv"><span class="dim">Attachment</span><b>${r.attach?.summary?.style || '—'}</b></div>
+    <div class="kv"><span class="dim">Enneagram</span><b>${r.enneagram?.summary?.ennea || '—'}</b></div>
+    <div class="kv"><span class="dim">Love language</span><b>${r.love?.summary?.love || '—'}</b></div>
+    <div class="kv"><span class="dim">Social style</span><b>${r.disc?.summary?.disc || '—'}</b></div>
+    <div class="kv"><span class="dim">Humour</span><b>${r.humour?.summary?.humour || '—'}</b></div>
+    <div class="kv"><span class="dim">Conflict</span><b>${r.conflict?.summary?.conflict || '—'}</b></div>
+    <div class="kv"><span class="dim">Body clock</span><b>${r.chrono?.summary?.chrono || '—'}</b></div>
+  </div>`;
+}
+
+/* ------------------------------ actions ------------------------------ */
+document.addEventListener('click', async (e) => {
+  const el = e.target.closest('[data-act],[data-g],[data-p]');
+  if (!el) return;
+  if (el.dataset.g) { document.querySelectorAll('#a-gender button').forEach(b => b.setAttribute('aria-pressed', b === el)); S.gender = el.dataset.g; return; }
+  if (el.dataset.p) { document.querySelectorAll('#a-pref button').forEach(b => b.setAttribute('aria-pressed', b === el)); S.pref = el.dataset.p; return; }
+  if (el.dataset.ep) { document.querySelectorAll('#e-pref button').forEach(b => b.setAttribute('aria-pressed', b === el)); S.editPref = el.dataset.ep; return; }
+  const act = el.dataset.act;
+  const guard = async fn => { if (S.busy) return; S.busy = true; try { await fn(); } catch (err) { toast(err.message); } finally { S.busy = false; } };
+
+  switch (act) {
+    case 'authmode': S.authMode = el.dataset.v; render(); break;
+
+    case 'signup': await guard(async () => {
+      const r = await api('/api/signup', { method: 'POST', body: {
+        email: $('#a-email').value, password: $('#a-pass').value, name: $('#a-name').value,
+        status: $('#a-status').value, gender: S.gender, pref: S.pref,
+        dob: $('#a-dob').value, tob: $('#a-tob').value, city: $('#a-city').value
+      }});
+      S.token = r.token; localStorage.setItem('milao_token', r.token);
+      await boot(); toast('Welcome. Build your character.');
+    }); break;
+
+    case 'login': await guard(async () => {
+      const r = await api('/api/login', { method: 'POST', body: { email: $('#a-email').value, password: $('#a-pass').value } });
+      S.token = r.token; localStorage.setItem('milao_token', r.token);
+      await boot(); toast('Back in.');
+    }); break;
+
+    case 'logout': localStorage.removeItem('milao_token'); S.token = null; S.me = null; S.chat = null; stopPoll(); render(); break;
+    case 'tab': S.tab = el.dataset.tab; render(); break;
+
+    case 'queue': await guard(async () => {
+      await api('/api/queue/join', { method: 'POST', body: { slot: Number(el.dataset.slot) } });
+      await refreshState();
+    }); break;
+
+    case 'unqueue': await guard(async () => {
+      await api('/api/queue/leave', { method: 'POST', body: { slot: Number(el.dataset.slot) } });
+      await refreshState();
+    }); break;
+
+    case 'openchat': await guard(async () => {
+      const r = await api('/api/chats/' + el.dataset.id);
+      S.chat = r.chat; S.draft = ''; render(); startChatPoll();
+    }); break;
+
+    case 'closechat': S.chat = null; stopChatPoll(); await refreshState(); render(); break;
+
+    case 'sendmsg': await guard(async () => {
+      const box = $('#msgbox'); const text = box.value.trim(); if (!text) return;
+      const r = await api(`/api/chats/${S.chat.id}/messages`, { method: 'POST', body: { text } });
+      S.chat = r.chat; S.draft = ''; render();
+      const m = $('#msgs'); if (m) m.scrollTop = m.scrollHeight;
+    }); break;
+
+    case 'reportmenu': openReport(); break;
+
+    case 'report': await guard(async () => {
+      const reason = el.dataset.reason;
+      closeSheet();
+      const r = await api(`/api/chats/${S.chat.id}/report`, { method: 'POST', body: { reason } });
+      toast(r.suspended ? 'Reported. Account suspended pending review.' : 'Reported. It costs them.');
+      S.chat = null; stopChatPoll(); await refreshState(); render();
+    }); break;
+
+    case 'leavechat': await guard(async () => {
+      closeSheet();
+      const r = await api(`/api/chats/${S.chat.id}/leave`, { method: 'POST', body: {} });
+      S.chat = r.chat; render(); toast('You left the chat');   // no penalty shown — it is backend only
+    }); break;
+
+    case 'closesheet': if (e.target.closest('.inner')) return; closeSheet(); break;
+
+    case 'editprofile': openEdit(); break;
+    case 'saveprofile': await guard(async () => {
+      await api('/api/profile', { method: 'POST', body: {
+        name: $('#e-name').value, status: $('#e-status').value,
+        dob: $('#e-dob').value, tob: $('#e-tob').value,
+        city: $('#e-city').value, pref: S.editPref || S.me.user.pref
+      }});
+      S.editPref = null;
+      closeSheet(); await refreshMe(); render();
+      toast('Saved — chart recalculated');
+    }); break;
+
+    case 'opentest': {
+      const t = (S.tests || []).find(x => x.id === el.dataset.id);
+      S.run = { test: t, i: 0, answers: {}, result: null }; render(); break;
+    }
+    case 'ans': {
+      const r = S.run; r.answers[r.test.items[r.i].id] = Number(el.dataset.v);
+      if (r.test.kind === 'choice' && r.i < r.test.items.length - 1) r.i++;
+      render(); break;
+    }
+    case 'nextq': {
+      const r = S.run, item = r.test.items[r.i];
+      if (r.answers[item.id] == null) return;
+      if (r.i < r.test.items.length - 1) { r.i++; render(); }
+      else await guard(async () => {
+        const out = await api('/api/tests/' + r.test.id, { method: 'POST', body: { answers: r.answers } });
+        r.result = out.result; r.cibil = out.cibil;
+        await refreshMe(); render();
+      });
+      break;
+    }
+    case 'prevq': if (S.run.i > 0) { S.run.i--; render(); } break;
+    case 'closetest': S.run = null; S.tab = 'tests'; render(); break;
+  }
+});
+
+document.addEventListener('input', e => { if (e.target.id === 'msgbox') S.draft = e.target.value; });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.id === 'msgbox') { e.preventDefault(); document.querySelector('[data-act="sendmsg"]')?.click(); }
+});
+
+/* ------------------------------ sheets ------------------------------ */
+function closeSheet() { $('#sheet').innerHTML = ''; }
+function openReport() {
+  $('#sheet').innerHTML = `<div class="sheet" data-act="closesheet"><div class="inner">
+    <h3 style="margin-bottom:10px">Chat options</h3>
+    <button class="p w" data-act="leavechat">Leave the chat</button>
+    <p class="tiny" style="margin:10px 0 8px">The other person keeps their place.</p>
+    <p class="lbl" style="margin-bottom:6px">report</p>
+    ${['Rude or abusive', 'Spam or selling', 'Underage', 'Something else'].map(r =>
+      `<button class="opt" data-act="report" data-reason="${esc(r.toLowerCase())}">${esc(r)}</button>`).join('')}
+    <button class="ghost w" data-act="closesheet" style="margin-top:4px">Cancel</button>
+  </div></div>`;
+}
+function openEdit() {
+  const u = S.me.user, c = S.me.chart;
+  $('#sheet').innerHTML = `<div class="sheet" data-act="closesheet"><div class="inner" style="max-height:88vh;overflow-y:auto">
+    <h3 style="margin-bottom:4px">Edit your details</h3>
+    <p class="tiny" style="margin-bottom:12px">Change your birth date, time or place and the whole chart is recalculated.</p>
+    <label class="f"><span>name</span><input id="e-name" maxlength="24" value="${esc(u.name)}"></label>
+    <label class="f"><span>status — 50 characters</span><input id="e-status" maxlength="50" value="${esc(S.me.status || '')}"></label>
+    <div class="row">
+      <label class="f"><span>birth date</span><input id="e-dob" type="date" value="${esc(c.dob || '')}"></label>
+      <label class="f"><span>birth time</span><input id="e-tob" type="time" value="${esc(S.me.tob || '')}"></label>
+    </div>
+    <label class="f"><span>birth place</span><input id="e-city" value="${esc(u.city)}"></label>
+    <label class="f"><span>show me</span>
+      <div class="seg" id="e-pref">${['Men','Women','Anyone'].map(p => `<button data-ep="${p}" aria-pressed="${u.pref === p}">${p}</button>`).join('')}</div>
+    </label>
+    <p class="tiny" style="margin-bottom:10px">${c.place && !c.place.known ? 'That birth place is not recognised — try the nearest large city, or the ascendant will be off.' : 'Birth time is optional. Without it the ascendant is approximate.'}</p>
+    <button class="p w" data-act="saveprofile">Save changes</button>
+    <button class="ghost w" data-act="closesheet" style="margin-top:8px">Cancel</button>
+  </div></div>`;
+}
+
+/* ------------------------------ polling ------------------------------ */
+let lastStateJSON = '';
+async function refreshState() {
+  try {
+    const st = await api('/api/state');
+    const json = JSON.stringify(st);
+    const changed = json !== lastStateJSON;
+    lastStateJSON = json;
+    S.state = st;
+    if (st.newChats && st.newChats.length && !S.chat) toast('You have a match');
+    if (changed) render();
+  } catch (err) { if (err.code === 401) logout(); }
+}
+async function refreshMe() { S.me = await api('/api/me'); }
+function startPoll() { stopPoll(); S.poll = setInterval(() => { if (S.token && !S.chat) refreshState(); }, 2200); }
+function stopPoll() { if (S.poll) clearInterval(S.poll); S.poll = null; }
+function startChatPoll() {
+  stopChatPoll();
+  S.chatPoll = setInterval(async () => {
+    if (!S.chat) return stopChatPoll();
+    try {
+      const r = await api('/api/chats/' + S.chat.id);
+      if (JSON.stringify(r.chat.messages) !== JSON.stringify(S.chat.messages) || r.chat.endedAt !== S.chat.endedAt) {
+        S.chat = r.chat; render(); scrollMsgs();
+      }
+    } catch {}
+  }, 1600);
+}
+function stopChatPoll() { if (S.chatPoll) clearInterval(S.chatPoll); S.chatPoll = null; }
+function scrollMsgs() { const m = $('#msgs'); if (m) m.scrollTop = m.scrollHeight; }
+function logout() { localStorage.removeItem('milao_token'); S.token = null; S.me = null; stopPoll(); render(); }
+
+async function boot() {
+  try {
+    await refreshMe();
+    S.tests = (await api('/api/tests')).tests;
+    S.tab = Object.keys(S.me.results || {}).length < 9 ? 'tests' : 'home';
+    render();
+    await refreshState();
+    startPoll();
+  } catch (err) {
+    if (err.code === 401) logout(); else { toast(err.message); render(); }
+  }
+}
+
+if (S.token) boot(); else render();
+</script>
+</body>
+</html>
