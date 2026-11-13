@@ -1,9 +1,0 @@
-{
-  "name": "milao",
-  "version": "4.0.0",
-  "description": "Stranger chat filtered by a computed character. Zero dependencies.",
-  "main": "server.js",
-  "scripts": { "start": "node server.js", "test": "node test.js" },
-  "engines": { "node": ">=18" },
-  "private": true
-}
