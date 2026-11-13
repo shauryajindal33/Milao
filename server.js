@@ -478,7 +478,7 @@ const DB_FILE = path.join(DATA_DIR, 'db.json');
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const PRESENCE_MS = 25_000;
-const VERSION = 'v8';
+const VERSION = 'v9';
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
 
