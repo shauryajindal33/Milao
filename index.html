@@ -480,10 +480,10 @@ function viewProfile() {
   <div class="card">
     <div class="hd"><h3>${t('astrology')}</h3><span class="lbl">${c.hasTime ? t('withtime') : t('notime')}</span></div>
     <p class="lbl" style="margin:2px 0 6px">${t('western')}</p>
-    ${kvRow(t('sun'), (esc(tv('sign', c.western.sun))), 'sun')}
-    ${kvRow(t('moon'), (esc(tv('sign', c.western.moon))), 'moon')}
-    <div class="kv"><span class="dim">${t('rising')}</span><b>${esc(tv('sign', c.western.lagna))}</b></div>
-    <div class="kv"><span class="dim">${t('venusmars')}</span><b>${esc(tv('sign', c.western.venus))} · ${esc(tv('sign', c.western.mars))}</b></div>
+    ${kvRow(t('sun'), (esc(tv('sign', c.western.sun))), 'sun', 'sign', c.western.sun)}
+    ${kvRow(t('moon'), (esc(tv('sign', c.western.moon))), 'moon', 'sign', c.western.moon)}
+    ${kvRow(t('rising'), esc(tv('sign', c.western.lagna)), 'lagna', 'sign', c.western.lagna)}
+    ${kvRow(t('venusmars'), esc(tv('sign', c.western.venus)) + ' · ' + esc(tv('sign', c.western.mars)), 'venus', 'sign', c.western.venus)}
     <hr class="sep">
     <p class="lbl" style="margin:2px 0 6px">${t('vedic')}</p>
     <div class="kv"><span class="dim">${t('birthplace2')}</span><b>${esc(c.place && c.place.name ? c.place.name : 'not recognised')}</b></div>
@@ -491,12 +491,12 @@ function viewProfile() {
     ${kvRow(t('lagna'), (esc(tv('sign', c.lagna.sign))) + ' · ' + (t('lord')) + ' ' + (esc(tv('lord', c.lagna.lord))), 'lagna', 'sign', c.lagna.sign)}
     ${kvRow(t('sun'), (esc(tv('sign', c.sun.sign))) + ' · ' + (t('house')) + ' ' + (c.sun.house), 'sun', 'sign', c.sun.sign)}
     ${kvRow(t('moon'), (esc(tv('sign', c.moon.sign))) + ' · ' + (t('house')) + ' ' + (c.moon.house), 'moon', 'sign', c.moon.sign)}
-    ${kvRow(t('nakshatra'), (esc(tv('nak', c.moon.nak))) + ' · ' + (t('pada')) + ' ' + (c.moon.pada), 'nak')}
-    ${kvRow(t('naklord'), (esc(tv('lord', c.moon.lord))), 'naklord')}
+    ${kvRow(t('nakshatra'), (esc(tv('nak', c.moon.nak))) + ' · ' + (t('pada')) + ' ' + (c.moon.pada), 'nak', 'nak', c.moon.nak)}
+    ${kvRow(t('naklord'), (esc(tv('lord', c.moon.lord))), 'naklord', 'planet', c.moon.lord)}
     ${kvRow(t('venus'), (esc(tv('sign', c.venus.sign))) + ' · ' + (t('house')) + ' ' + (c.venus.house), 'venus', 'sign', c.venus.sign)}
     ${kvRow(t('mars'), (esc(tv('sign', c.mars.sign))) + ' · ' + (t('house')) + ' ' + (c.mars.house), 'mars', 'sign', c.mars.sign)}
-    ${kvRow(t('rahuketu'), (esc(tv('sign', c.rahu.sign))) + ' · ' + (esc(tv('sign', c.ketu.sign))), 'rahuketu')}
-    ${kvRow(t('manglik'), (c.manglik.is ? t('yes') + ' · ' + t('mars') + ' ' + t('house') + ' ' + c.mars.house : t('no')), 'manglik')}
+    ${kvRow(t('rahuketu'), (esc(tv('sign', c.rahu.sign))) + ' · ' + (esc(tv('sign', c.ketu.sign))), 'rahuketu', null, null, comboText('sign', c.rahu.sign, 'sign', c.ketu.sign))}
+    ${kvRow(t('manglik'), (c.manglik.is ? t('yes') + ' · ' + t('mars') + ' ' + t('house') + ' ' + c.mars.house : t('no')), 'manglik', null, null, manglikText(c.manglik.is, c.mars.house))}
     ${kvRow(t('element'), (esc(tv('element', c.element))) + ' · ' + (esc(tv('modality', c.modality))), 'element')}
     <p class="tiny" style="margin-top:6px">${esc(c.place && c.place.known ? c.place.name : 'place not recognised')} · ${c.place ? c.place.lat.toFixed(2) + '°, ' + c.place.lon.toFixed(2) + '°' : ''}${!c.hasTime ? ' · no birth time, ascendant approximate' : ''}</p>
     ${!c.hasTime ? `<p class="tiny" style="margin-top:6px">Without a birth time the moon could be any of: ${c.moon.nakRange.map(esc).join(', ')}.</p>` : ''}
@@ -506,11 +506,11 @@ function viewProfile() {
   <div class="card">
     <div class="hd"><h3>${t('othersystems')}</h3><span class="lbl">${c.systems ? t('computed') : '—'}</span></div>
     ${c.systems ? `
-    ${kvRow(t('mayan'), esc(c.systems.mayan.mayan) + ' · ' + t('tone') + ' ' + c.systems.mayan.tone, 'mayan')}
-    ${kvRow(t('aztec'), esc(c.systems.mayan.aztec), 'aztec')}
-    ${kvRow(t('celtic'), esc(c.systems.celtic), 'celtic')}
-    ${kvRow(t('burmese'), esc(c.systems.burmese), 'burmese')}
-    ${kvRow(t('thirteen'), esc(tv('sign', c.systems.thirteen)), 'thirteen')}` : ''}
+    ${kvRow(t('mayan'), esc(c.systems.mayan.mayan) + ' · ' + t('tone') + ' ' + c.systems.mayan.tone, 'mayan', 'day', c.systems.mayan.mayan)}
+    ${kvRow(t('aztec'), esc(c.systems.mayan.aztec), 'aztec', 'day', c.systems.mayan.aztec)}
+    ${kvRow(t('celtic'), esc(c.systems.celtic), 'celtic', 'tree', c.systems.celtic)}
+    ${kvRow(t('burmese'), esc(c.systems.burmese), 'burmese', 'burmese', c.systems.burmese)}
+    ${kvRow(t('thirteen'), esc(tv('sign', c.systems.thirteen)), 'thirteen', 'sign', c.systems.thirteen)}` : ''}
     ${kvRow(t('chinese'), esc(tv('element', c.chinese.element)) + ' ' + esc(c.chinese.animal), 'chinese', 'animal', c.chinese.animal)}
     <p class="tiny" style="margin-top:6px">${t('chinesenote')}</p>
   </div>
@@ -520,7 +520,7 @@ function viewProfile() {
     ${kvRow(t('mulank'), (n.mulank), 'mulank', 'number', n.mulank)}
     ${kvRow(t('bhagyank'), (n.bhagyank), 'bhagyank', 'number', n.bhagyank)}
     ${n.namank ? kvRow(t('namank'), n.namank, 'namank', 'number', n.namank) : ''}
-    ${kvRow(t('loshu'), Object.values(n.counts).filter(x => x > 0).length + '/9', 'loshu')}
+    ${kvRow(t('loshu'), Object.values(n.counts).filter(x => x > 0).length + '/9', 'loshu', null, null, loshuText(n.counts))}
   </div>
 
   <div class="card">
@@ -845,8 +845,10 @@ const POLISH = [[/\bmen\b/g,'mein'],[/\bkoee\b/g,'koi'],[/aa\b/g,'a'],[/\bachchh
   [/\bkarata\b/g,'karta'],[/\blagata\b/g,'lagta'],[/\bbanata\b/g,'banata'],[/\bsochana\b/g,'sochna'],
   [/\bkaratee\b/g,'karti'],[/\blagatee\b/g,'lagti'],[/\bjaata\b/g,'jata'],[/\baata\b/g,'ata'],
   [/\bdooree\b/g,'doori'],[/\bkoi\b/g,'koi']];
+const LOANWORDS = {"ataichament": "attachment", "besik": "basic", "bhaagyank": "bhagyank", "chat": "chat", "chek": "check", "daayagnosis": "diagnosis", "dedalaain": "deadlines", "edalt": "adult", "empaaithee": "empathy", "eneegraam": "enneagram", "freimvark": "framework", "grup": "group", "jng": "Jungian", "kilamain": "Kilmann", "klinikl": "clinical", "lnbee": "long", "maisej": "message", "match": "match", "medikl": "medical", "modal": "model", "notis": "notice", "paartee": "party", "paiking": "packing", "parsanailitee": "personality", "phaaiv": "five", "phaiktar": "factor", "phlevar": "flavour", "plaaning": "planning", "populr": "popular", "profile": "profile", "saayans": "science", "sarapraaiz": "surprises", "score": "score", "seeriyas": "serious", "skor": "score", "stetaments": "statements", "test": "test", "tests": "tests", "thomas": "Thomas", "tier": "tier", "tredamaark": "trademarked", "vailyooz": "values"};
 function hinglish(s) {
   let out = translit(s);
+  for (const [k, v] of Object.entries(LOANWORDS)) out = out.replace(new RegExp('\\b' + k + '\\b', 'gi'), v);
   for (const [re, to] of POLISH) out = out.replace(re, to);
   for (const [k, v] of Object.entries(LOAN)) out = out.replace(new RegExp('\\b' + k + '\\b', 'gi'), v);
   return out;
@@ -1094,8 +1096,8 @@ function ex(k) {
   if (!v) return EXPLAIN[k] || '';
   return S.lang === 'hi' ? v : hinglish(v);
 }
-function kvRow(label, value, key, kind, lookup) {
-  const specific = kind ? meaningOf(kind, lookup) : '';
+function kvRow(label, value, key, kind, lookup, custom) {
+  const specific = custom || (kind ? meaningOf(kind, lookup) : '');
   const txt = specific || (key ? ex(key) : '');
   const val = esc(String(value == null ? '—' : value));
   if (!txt) return '<div class="kv"><span class="dim">' + label + '</span><b>' + val + '</b></div>';
@@ -1151,6 +1153,159 @@ const MEANS = {
     Water:'Feeling and private, and you take the shape of whoever is closest.'
   }
 };
+
+MEANS.nak = {
+  Ashwini:'Quick and healing. You start things, fix things, and cannot sit still.',
+  Bharani:'Heavy and creative. You carry what others put down, and you feel everything physically.',
+  Krittika:'Sharp and purifying. You cut through pretence and do not soften it.',
+  Rohini:'Charming and sensual. People come to you easily, and you enjoy being wanted.',
+  Mrigashira:'Searching and restless. You are always looking for the next thing and rarely settle.',
+  Ardra:'Stormy and transforming. You break things open, including yourself.',
+  Punarvasu:'Renewing and optimistic. You come back, again and again, and bring people with you.',
+  Pushya:'Nourishing and dutiful. You look after others and take the responsibility seriously.',
+  Ashlesha:'Coiled and perceptive. You see the shape of a situation and wait for the right moment.',
+  Magha:'Proud and ancestral. You carry a family\u2019s weight and want to be recognised for it.',
+  'Purva Phalguni':'Playful and pleasure-loving. You are here for joy, and you make things beautiful.',
+  'Uttara Phalguni':'Generous and loyal. You give steadily and expect the same back.',
+  Hasta:'Skilful and resourceful. You work with your hands and fix what is in front of you.',
+  Chitra:'Brilliant and artistic. You want to be seen, and you make things worth seeing.',
+  Swati:'Independent and flexible. You make your own way and will not be tied down.',
+  Vishakha:'Ambitious and determined. You want the prize and will take the harder road for it.',
+  Anuradha:'Devoted and friendly. You build slowly and stay for a very long time.',
+  Jyeshtha:'Senior and protective. You take charge of the group and defend it.',
+  Mula:'Root-seeking and intense. You dig to the bottom of things, even when it costs you.',
+  'Purva Ashadha':'Invincible and persuasive. You do not accept defeat, and you bring people round.',
+  'Uttara Ashadha':'Lasting and righteous. You win by outlasting, and you want to have been fair.',
+  Shravana:'Listening and connected. You learn by hearing and remember everything said.',
+  Dhanishta:'Rhythmic and wealthy. You build in patterns and make things worth keeping.',
+  Shatabhisha:'Healing and solitary. You see what is hidden and work best alone.',
+  'Purva Bhadrapada':'Intense and idealistic. You want the world fixed and feel its failure personally.',
+  'Uttara Bhadrapada':'Deep and calm. You carry the wisdom of endings and do not rush.',
+  Revati:'Nurturing and protective. You guide people to the shore and let them go.'
+};
+MEANS.day = {
+  Imix:'Crocodile. Raw beginnings, appetite, the first thing before there was a plan.',
+  Ik:'Wind. Movement, breath, the thing that changes the room.',
+  Akbal:'Night. The inward turn, dreams, what you meet in the dark.',
+  Kan:'Seed. Growth, instinct, the body knowing before the mind.',
+  Chicchan:'Serpent. Vitality, desire, the energy that coils at the base of everything.',
+  Cimi:'Death. Endings, release, the cut that lets something new through.',
+  Manik:'Deer. Grace, the hunt, gentleness that survives.',
+  Lamat:'Rabbit. Fertility, abundance, luck that arrives sideways.',
+  Muluc:'Water. Feeling, flow, what you pour out as an offering.',
+  Oc:'Dog. Loyalty, guidance, the heart that stays.',
+  Chuen:'Monkey. Craft, play, making things for the pleasure of it.',
+  Eb:'Road. Service, humility, the path you walk rather than describe.',
+  Ben:'Reed. Authority, family, the thing that stands up straight.',
+  Ix:'Jaguar. Night vision, magic, power that moves unseen.',
+  Men:'Eagle. Vision, ambition, the view from above.',
+  Cib:'Vulture. Age, wisdom, the freedom of having nothing left to prove.',
+  Caban:'Earthquake. Movement, thought, the ground rearranging itself.',
+  Etznab:'Flint. Clarity, truth, the edge that cuts cleanly.',
+  Cauac:'Storm. Renewal, rain, what washes everything away.',
+  Ahau:'Sun. Completion, beauty, the light at the end of the count.',
+  Cipactli:'Crocodile. Raw beginnings, appetite, the first thing before there was a plan.',
+  Ehecatl:'Wind. Movement, breath, the thing that changes the room.',
+  Calli:'Night. The inward turn, dreams, what you meet in the dark.',
+  Cuetzpalin:'Seed. Growth, instinct, the body knowing before the mind.',
+  Coatl:'Serpent. Vitality, desire, the energy that coils at the base of everything.',
+  Miquiztli:'Death. Endings, release, the cut that lets something new through.',
+  Mazatl:'Deer. Grace, the hunt, gentleness that survives.',
+  Tochtli:'Rabbit. Fertility, abundance, luck that arrives sideways.',
+  Atl:'Water. Feeling, flow, what you pour out as an offering.',
+  Itzcuintli:'Dog. Loyalty, guidance, the heart that stays.',
+  Ozomahtli:'Monkey. Craft, play, making things for the pleasure of it.',
+  Malinalli:'Road. Service, humility, the path you walk rather than describe.',
+  Acatl:'Reed. Authority, family, the thing that stands up straight.',
+  Ocelotl:'Jaguar. Night vision, magic, power that moves unseen.',
+  Cuauhtli:'Eagle. Vision, ambition, the view from above.',
+  Cozcacuauhtli:'Vulture. Age, wisdom, the freedom of having nothing left to prove.',
+  Ollin:'Earthquake. Movement, thought, the ground rearranging itself.',
+  Tecpatl:'Flint. Clarity, truth, the edge that cuts cleanly.',
+  Quiahuitl:'Storm. Renewal, rain, what washes everything away.',
+  Xochitl:'Sun. Completion, beauty, the light at the end of the count.'
+};
+MEANS.tree = {
+  Birch:'Beginnings, purification, the first page.',
+  Rowan:'Protection, insight, the door that keeps things out.',
+  Ash:'Connection, the world tree, the line between above and below.',
+  Alder:'Foundation, shielding, the ground you build on.',
+  Willow:'Intuition, water, what you know in dreams.',
+  Hawthorn:'Boundaries, the heart, patience with thorns.',
+  Oak:'Strength, endurance, the one others stand behind.',
+  Holly:'Courage, action, the will to step forward.',
+  Hazel:'Wisdom, poetry, knowledge worth keeping.',
+  Vine:'Harvest, joy, the pleasure of what you grew.',
+  Ivy:'Attachment, persistence, the thing that climbs regardless.',
+  Reed:'Truth, music, saying it plainly.',
+  Elder:'Endings, cycles, the transformation at the close.'
+};
+MEANS.burmese = {
+  Garuda:'Bold and protective, and you rise above the fight.',
+  Tiger:'Fierce and independent, and you do not need permission.',
+  Lion:'Proud and dignified, and you lead without raising your voice.',
+  'Elephant with tusks':'Strong and generous, and you carry others without complaint.',
+  'Elephant without tusks':'Gentle and careful, and you wait for the right moment.',
+  Rat:'Clever and resourceful, and you find the way through.',
+  'Guinea pig':'Sociable and friendly, and you make places feel easy.',
+  Dragon:'Powerful and ambitious, and you finish what you begin.'
+};
+
+
+MEANS.planet = {
+  Sun:'the self, the father, authority, the thing you are here to become',
+  Moon:'the mind, the mother, feeling, the weather inside you',
+  Mars:'energy, anger, courage, how you fight for what you want',
+  Mercury:'speech, wit, trade, how you think and say it',
+  Jupiter:'growth, teachers, luck, the wisdom you are handed',
+  Venus:'love, beauty, pleasure, what you are drawn towards',
+  Saturn:'time, discipline, delay, the thing you must earn slowly',
+  Rahu:'hunger, ambition, the thing you chase that never quite fills',
+  Ketu:'detachment, memory, the thing you already finished'
+};
+function comboText(kindA, a, kindB, b) {
+  const ma = meaningOf(kindA, a), mb = meaningOf(kindB, b);
+  if (!ma || !mb) return '';
+  const first = s => (s.split('. ')[0] || s).replace(/\.$/, '') + '.';
+  const lang = S.lang;
+  const rahuLbl = lang === 'hi' ? 'राहु' : lang === 'hinglish' ? 'Rahu' : 'Rahu';
+  const ketuLbl = lang === 'hi' ? 'केतु' : lang === 'hinglish' ? 'Ketu' : 'Ketu';
+  const chase = lang === 'hi' ? 'जिसके पीछे आप भागते हैं' : lang === 'hinglish' ? 'jiske peeche aap bhaagte hain' : 'what you chase';
+  const know = lang === 'hi' ? 'जो आप पहले से जानते हैं' : lang === 'hinglish' ? 'jo aap pehle se jaante hain' : 'what you already know';
+  return rahuLbl + ' — ' + chase + ': ' + first(ma) + ' ' + ketuLbl + ' — ' + know + ': ' + first(mb);
+}
+function manglikText(isManglik, house) {
+  const lang = S.lang;
+  if (isManglik) {
+    return lang === 'hi'
+      ? 'मंगल ' + house + ' भाव में है — पारंपरिक रूप से इसे मिलता-जुलता चार्ट मांगने वाला माना जाता है। आप जल्दी भड़कते हैं और पूरी तरह प्यार करते हैं; ऐसा साथी चाहिए जो घबराए नहीं।'
+      : lang === 'hinglish'
+      ? 'Mangal ' + house + ' bhav mein hai — paramparik roop se ise milta-julta chart maangne wala maana jaata hai. Aap jaldi bhadakte hain aur poora pyaar karte hain; aisa saathi chahiye jo ghabraye nahi.'
+      : 'Mars sits in house ' + house + ' — traditionally read as wanting a matching chart. You flare quickly and love completely, and you need someone who does not flinch from either.';
+  }
+  return lang === 'hi'
+    ? 'मंगल उन भावों से हटकर है जो चार्ट को मांगलिक बनाते हैं। आपका गुस्सा सीधा और साफ है, बिना पुरानी कड़वाहट के।'
+    : lang === 'hinglish'
+    ? 'Mangal un bhavon se hatkar hai jo chart ko manglik banate hain. Aapka gussa seedha aur saaf hai, bina purani kadwahat ke.'
+    : 'Mars sits clear of the houses that make a chart manglik. Your anger is direct and short-lived, without a stored grudge.';
+}
+function loshuText(counts) {
+  const missing = [];
+  for (let i = 1; i <= 9; i++) if (!counts || !counts[String(i)]) missing.push(i);
+  const lang = S.lang;
+  const joined = missing.length ? missing.join(', ') : '';
+  if (!missing.length) {
+    return lang === 'hi' ? 'आपके ग्रिड में हर अंक मौजूद है — कोई स्पष्ट कमज़ोरी नहीं, बस हर चीज़ का थोड़ा-थोड़ा।'
+      : lang === 'hinglish' ? 'Aapke grid mein har ank maujood hai — koi spasht kamzori nahi, bas har cheez ka thoda-thoda.'
+      : 'Every number is present in your grid. No obvious gap — a bit of everything, which can also mean nothing dominates.';
+  }
+  return lang === 'hi'
+    ? 'आपके ग्रिड में ' + joined + ' नहीं है — यही वे सबक हैं जो ज़िंदगी आपको बार-बार देगी।'
+    : lang === 'hinglish'
+    ? 'Aapke grid mein ' + joined + ' nahi hai — yahi woh sabak hain jo zindagi aapko baar-baar degi.'
+    : 'Your grid is missing ' + joined + ' — those are the lessons life will keep handing you until they land.';
+}
+
 function meaningOf(kind, value) {
   if (value == null) return '';
   const key = String(value);
