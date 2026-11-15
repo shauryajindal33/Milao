@@ -86,24 +86,37 @@ const answersFor = id => { const a = {}; for (const it of TESTS[id].items) a[it.
   uA.stats.skips = 5;
   ok('skipping is a small deduction', noSkips - cibilOf(uA) === 10, String(noSkips - cibilOf(uA)));
 
-  console.log('\n— block —');
+  console.log('\n— reports —');
   await api('POST', '/api/queue/join', { slot: 0 }, AT);
   await api('POST', '/api/queue/join', { slot: 0 }, BT);
   const st1 = await api('GET', '/api/state', null, AT);
   const cid = st1.json.slots.find(s => s.chatId)?.chatId;
-  ok('matched before blocking', !!cid);
-  const blocked = await api('POST', '/api/block', { id: uB.id, block: true }, AT);
-  ok('block returns ok', blocked.status === 200 && blocked.json.blocked === true);
-  const st2 = await api('GET', '/api/state', null, AT);
-  ok('blocking ended the live chat', !st2.json.slots.some(s => s.chatId === cid));
-  await api('POST', '/api/queue/join', { slot: 0 }, AT);
-  await api('POST', '/api/queue/join', { slot: 0 }, BT);
-  const st3 = await api('GET', '/api/state', null, AT);
-  ok('blocked pair never matched again', !st3.json.slots.some(s => s.chatId));
-  const un = await api('POST', '/api/block', { id: uB.id, block: false }, AT);
-  ok('unblock works', un.json.blocked === false);
-  await api('POST', '/api/queue/leave', { slot: 0 }, AT);
-  await api('POST', '/api/queue/leave', { slot: 0 }, BT);
+  ok('matched before reporting', !!cid);
+  const r1 = await api('POST', '/api/chats/' + cid + '/report', { reason: 'rude or abusive' }, AT);
+  ok('one report does not suspend', r1.status === 200 && r1.json.suspended === false);
+  ok('the reported account still works', (await api('GET', '/api/me', null, BT)).status === 200);
+
+  console.log('\n— three separate reports suspend —');
+  const reportBy = async (email, name) => {
+    const s2 = await signup(person({ email, name, gender: 'Man', pref: 'Women' }));
+    const tok = s2.json.token;
+    await api('POST', '/api/queue/join', { slot: 0 }, tok);
+    await api('POST', '/api/queue/join', { slot: 0 }, BT);
+    const st = await api('GET', '/api/state', null, tok);
+    const c2 = st.json.slots.find(s => s.chatId)?.chatId;
+    if (!c2) return null;
+    return api('POST', '/api/chats/' + c2 + '/report', { reason: 'rude or abusive' }, tok);
+  };
+  const second = await reportBy('c@x.com', 'Kabir');
+  ok('second distinct report: still standing', second && second.json.suspended === false);
+  const third = await reportBy('d@x.com', 'Dev');
+  ok('third distinct report suspends', third && third.json.suspended === true);
+  ok('suspended account cannot sign in', (await api('POST', '/api/login', { email: 'b@x.com', password: 'password123' })).status === 403);
+  const reps = await api('GET', '/api/admin/reports?token=dev');
+  ok('admin sees the reports', reps.json.reports.length >= 3);
+  const sus = await api('POST', '/api/admin/suspend?token=dev', { userId: reps.json.reports[0].to.id, suspend: false });
+  ok('admin can lift it after review', sus.json.suspended === false);
+  ok('account works again', (await api('POST', '/api/login', { email: 'b@x.com', password: 'password123' })).status === 200);
 
   console.log('\n— typing —');
   const t1 = await api('POST', '/api/chats/' + cid + '/typing', null, BT);

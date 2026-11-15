@@ -479,6 +479,10 @@ const DB_FILE = path.join(DATA_DIR, 'db.json');
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const PRESENCE_MS = 25_000;
+/* how many different people must report someone before the account suspends
+   itself pending a human look. Three is low enough to catch a problem early
+   and high enough that one annoyed person cannot do it alone. */
+const REPORT_SUSPEND_AT = 3;
 const VERSION = 'v12';
 
 /* ---------- India place index: 7k towns with real coordinates ---------- */
@@ -938,8 +942,6 @@ function sweepQueue() {
   return db.queue.length !== before;
 }
 
-const isBlockedPair = (x, y) => !!x && !!y && (((x.blocked || []).includes(y.id)) || ((y.blocked || []).includes(x.id)));
-
 function tryMatch() {
   sweepQueue();
   const created = [];
@@ -954,7 +956,6 @@ function tryMatch() {
       const e2 = entries[j], u2 = db.users[e2.uid];
       if (!u2 || u2.id === u1.id) continue;
       if (!wants(u1, u2) || !wants(u2, u1)) continue;
-      if (isBlockedPair(u1, u2)) continue;
       // both need a free slot
       const busy = (u, slot) => activeChats(u.id).some(c => c.a.slot === slot || c.b.slot === slot);
       if (busy(u1, e1.slot) || busy(u2, e2.slot)) continue;
@@ -990,6 +991,7 @@ function publicUser(u) {
   return {
     id: u.id, name: u.name, status: u.status || '', gender: u.gender, pref: u.pref,
     city: u.city, age: ageOf(u.dob), tier: tierOf(cibil).name, slots: slotsOf(u),
+    avatar: u.avatar || null,
     suspended: !!u.suspended
   };
 }
@@ -1006,7 +1008,7 @@ function chatView(c, me) {
   return {
     id: c.id, score: c.score, band: band(c.score), groups: c.groups,
     startedAt: c.startedAt, endedAt: c.endedAt, endedBy: c.endedBy === me.id ? 'me' : 'them',
-    peer: other ? { id: other.id, name: other.name, status: other.status || '', age: ageOf(other.dob), city: other.city, tier: tierOf(cibilOf(other)).name } : null,
+    peer: other ? { id: other.id, avatar: other.avatar || null, name: other.name, status: other.status || '', age: ageOf(other.dob), city: other.city, tier: tierOf(cibilOf(other)).name } : null,
     messages: c.messages.map(m => ({ from: m.uid === me.id ? 'me' : 'them', text: m.text, at: m.at })),
     mySlot: c.a.uid === me.id ? c.a.slot : c.b.slot,
     peerTyping: !!(c.typing && c.typing[otherId] && now() - c.typing[otherId] < 5000),
@@ -1198,22 +1200,16 @@ function createServer() {
         });
       }
 
-      if (method === 'POST' && p === '/api/block') {
+      if (method === 'POST' && p === '/api/avatar') {
         const b = await readBody(req);
-        const target = db.users[String(b.id || '')];
-        if (!target || target.id === me.id) return bad(res, 400, 'No such person.');
-        const on = b.block !== false;
-        me.blocked = me.blocked || [];
-        const at = me.blocked.indexOf(target.id);
-        if (on && at < 0) me.blocked.push(target.id);
-        if (!on && at >= 0) me.blocked.splice(at, 1);
-        if (on) for (const c of Object.values(db.chats)) {
-          const pair = (c.a.uid === me.id && c.b.uid === target.id) || (c.a.uid === target.id && c.b.uid === me.id);
-          if (pair && !c.endedAt) { c.endedAt = now(); c.endedBy = me.id; }
+        const clean = {};
+        for (const k of ['skin','hair','hairColor','eyes','brow','mouth','glasses','hat']) {
+          const v = Number(b[k]);
+          if (Number.isInteger(v) && v >= 0 && v < 12) clean[k] = v;
         }
-        db.queue = db.queue.filter(e => e.uid !== me.id || true);
+        me.avatar = clean;
         save();
-        return send(res, 200, { blocked: on, count: me.blocked.length });
+        return send(res, 200, { avatar: me.avatar });
       }
 
       if (method === 'DELETE' && p === '/api/account') {
@@ -1224,7 +1220,6 @@ function createServer() {
         db.queue = db.queue.filter(e => e.uid !== id);
         db.notes = (db.notes || []).filter(n => n.from !== id && n.to !== id);
         for (const [tok, uid2] of Object.entries(db.tokens)) if (uid2 === id) delete db.tokens[tok];
-        for (const u of Object.values(db.users)) u.blocked = (u.blocked || []).filter(x => x !== id);
         delete db.users[id];
         save();
         return send(res, 200, { deleted: true });
@@ -1388,15 +1383,21 @@ function createServer() {
         if (parts[4] === 'report' && method === 'POST') {
           const b = await readBody(req);
           const reason = String(b.reason || 'other').slice(0, 40);
+          let suspendedNow = false;
           if (other) {
             bump(other, 'reported');
             other.stats.reported = (other.stats.reported || 0) + 1;
-            if (reason === 'underage') other.suspended = true;
+            db.reports.push({ id: uid(), chat: c.id, from: me.id, to: otherId, reason, at: now() });
+            // distinct reporters only — one person cannot suspend someone alone
+            const distinct = new Set(db.reports.filter(r => r.to === otherId).map(r => r.from)).size;
+            if (reason === 'underage') { other.suspended = true; other.suspendReason = 'underage report'; suspendedNow = true; }
+            else if (distinct >= REPORT_SUSPEND_AT) { other.suspended = true; other.suspendReason = distinct + ' separate reports'; suspendedNow = true; }
+          } else {
+            db.reports.push({ id: uid(), chat: c.id, from: me.id, to: otherId, reason, at: now() });
           }
-          db.reports.push({ id: uid(), chat: c.id, from: me.id, to: otherId, reason, at: now() });
           c.endedAt = c.endedAt || now();
           save();
-          return send(res, 200, { ok: true, suspended: reason === 'underage' });
+          return send(res, 200, { ok: true, suspended: suspendedNow });
         }
       }
 
