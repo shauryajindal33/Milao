@@ -109,6 +109,9 @@ nav button[aria-pressed=true]{color:var(--teal)}
 .eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:0;padding:8px;cursor:pointer;color:var(--faint);line-height:0}
 .eye svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.7}
 .eye.on{color:var(--teal)}
+.avbtn{background:none;border:0;padding:0;line-height:0;cursor:pointer;border-radius:50%}
+.avbtn svg{border-radius:50%;display:block}
+.avempty{width:40px;height:40px;border-radius:50%;background:var(--surface-2);display:grid;place-items:center;color:var(--faint);font-size:18px;border:1px dashed var(--line)}
 .avchip{display:inline-flex;flex:0 0 auto;border-radius:50%;overflow:hidden;line-height:0}
 .opts{display:flex;flex-wrap:wrap;gap:6px}
 .chip{font-size:12px;padding:6px 11px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--dim);cursor:pointer;font-family:var(--sans)}
@@ -121,7 +124,11 @@ a:visited{color:var(--teal)}
 .empty{display:grid;place-content:center;text-align:center;height:100%;padding:0 26px;gap:4px}
 .typing{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);font-weight:400}
 .sheet{position:fixed;inset:0;background:rgba(10,14,13,.45);display:flex;align-items:flex-end;z-index:50}
-.sheet .inner{background:var(--surface);width:100%;max-width:480px;margin:0 auto;border-radius:18px 18px 0 0;padding:18px}
+.sheet .inner{background:var(--surface);width:100%;max-width:480px;margin:0 auto;border-radius:18px 18px 0 0;padding:18px 18px 0;
+  max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
+.sheet .body{overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px}
+.sheet .foot{position:sticky;bottom:0;background:var(--surface);padding:10px 0 calc(14px + env(safe-area-inset-bottom));display:flex;gap:8px;border-top:1px solid var(--line-soft)}
+.sheet .chip,.sheet .sw{touch-action:manipulation}
 .opt{display:block;width:100%;text-align:left;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface);margin-bottom:8px;font-size:14.5px;line-height:1.35;color:var(--ink)}
 .opt[aria-pressed=true]{border-color:var(--teal);background:var(--teal-soft);font-weight:600;color:var(--teal)}
 .scale{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
@@ -415,21 +422,25 @@ function viewProfile() {
   const m = S.me, c = m.chart, n = c.numerology, r = m.results || {};
   const b5 = r.big5?.dims || {};
   const lbl = { O:'Openness', C:'Conscientious', E:'Extraversion', A:'Agreeable', N:'Stability' };
-  return `<div class="card">
-    <div class="hd"><h2>${esc(m.user.name)}</h2><span class="lbl">${esc(m.user.city)} · ${m.user.age}</span></div>
+  return `${!c.place || !c.place.known ? `<div class="card" style="border-color:var(--red);background:var(--red-soft)">
+    <div class="hd"><h3 style="color:var(--red)">Your birth place wasn't recognised</h3></div>
+    <p class="small" style="margin:0 0 10px">The chart below was computed from the centre of India, so the lagna and houses are wrong. Pick your city again and it recalculates.</p>
+    <button class="p w" data-act="editprofile">Set my birth place</button>
+  </div>` : ''}
+  <div class="card">
+    <div class="hd" style="align-items:center;gap:10px">
+      <button class="avbtn" data-act="openavatar" title="Your avatar" aria-label="Edit avatar">
+        ${m.user.avatar ? avatarSVG(m.user.avatar, 40) : '<span class="avempty">+</span>'}
+      </button>
+      <h2 style="flex:1;margin:0">${esc(m.user.name)}</h2>
+      <span class="lbl">${esc(m.user.city)} · ${m.user.age}</span>
+    </div>
     <div class="chips"><span class="chip t">${esc(m.cibil.tier)}</span><span class="chip">${m.cibil.slots} slots</span><span class="chip">${esc(m.user.gender)}</span><span class="chip">sees ${esc(m.user.pref.toLowerCase())}</span></div>
     <hr class="sep">
     <p class="small dim" style="margin-bottom:8px">"${esc(m.status || 'no status yet')}"</p>
     <div class="row">
       <button class="ghost" data-act="editprofile">Edit details</button>
       <button class="ghost" data-act="logout">Sign out</button>
-    </div>
-    <div style="display:flex;align-items:center;gap:12px;margin-top:14px">
-      ${m.user.avatar ? avatarchip(m.user.avatar, 56) : '<span class="avchip" style="width:56px;height:56px;background:var(--surface-2);display:grid;place-items:center;font-size:22px;color:var(--faint)">?</span>'}
-      <div style="flex:1">
-        <div class="tiny" style="margin-bottom:6px">${m.user.avatar ? 'Your avatar' : 'No avatar yet'}</div>
-        <button class="ghost" data-act="openavatar">${m.user.avatar ? 'Change avatar' : 'Create avatar'}</button>
-      </div>
     </div>
     <div class="tiny" style="margin-top:12px;line-height:1.9">
       <a href="/terms" target="_blank">Terms</a> · <a href="/privacy" target="_blank">Privacy</a> ·
@@ -510,10 +521,18 @@ function viewProfile() {
 document.addEventListener('click', async (e) => {
   const cityRow = e.target.closest('.cityrow[data-city]');
   if (cityRow) {
-    $('#a-city').value = cityRow.dataset.city;
-    placePicked = { name: cityRow.dataset.city, state: cityRow.dataset.state };
-    $('#city-list').style.display = 'none';
-    $('#city-confirm').textContent = `${cityRow.dataset.city}${cityRow.dataset.state ? ', ' + cityRow.dataset.state : ''} · ${(+cityRow.dataset.lat).toFixed(2)}°N, ${(+cityRow.dataset.lon).toFixed(2)}°E · IST`;
+    const which = cityRow.dataset.list === 'e-city-list' ? 'e-city' : 'a-city';
+    const input = document.getElementById(which);
+    if (input) input.value = cityRow.dataset.city;
+    const picked = { name: cityRow.dataset.city, state: cityRow.dataset.state };
+    const box = document.getElementById(cityRow.dataset.list);
+    if (box) box.style.display = 'none';
+    if (which === 'a-city') {
+      placePicked = picked;
+      $('#city-confirm').textContent = `${picked.name}${picked.state ? ', ' + picked.state : ''} · ${(+cityRow.dataset.lat).toFixed(2)}°N, ${(+cityRow.dataset.lon).toFixed(2)}°E · IST`;
+    } else {
+      editPlacePicked = picked;
+    }
     return;
   }
 
@@ -531,7 +550,7 @@ document.addEventListener('click', async (e) => {
     case 'avopt': {
       S.av = S.av || {};
       S.av[el.dataset.k] = Number(el.dataset.v);
-      openAvatar();
+      refreshAvatar();
       break;
     }
 
@@ -540,7 +559,7 @@ document.addEventListener('click', async (e) => {
       S.av = { skin: pick(AV.skin.length), hairColor: pick(AV.hairColor.length), hair: pick(AV.hair.length),
                eyes: pick(AV.eyes.length), brow: pick(AV.brow.length), mouth: pick(AV.mouth.length),
                glasses: pick(AV.glasses.length), hat: pick(AV.hat.length) };
-      openAvatar();
+      refreshAvatar();
       break;
     }
 
@@ -652,7 +671,7 @@ document.addEventListener('click', async (e) => {
       await api('/api/profile', { method: 'POST', body: {
         name: $('#e-name').value, status: $('#e-status').value,
         dob: $('#e-dob').value, tob: $('#e-tob').value,
-        city: $('#e-city').value, pref: S.editPref || S.me.user.pref
+        city: editPlacePicked ? editPlacePicked.name : $('#e-city').value, pref: S.editPref || S.me.user.pref
       }});
       S.editPref = null;
       closeSheet(); await refreshMe(); render();
@@ -714,8 +733,10 @@ function avatarSVG(a, size = 64) {
   s += `<circle cx="50" cy="50" r="50" fill="#F7E8E4"/>`;
   // neck + face
   s += `<rect x="42" y="74" width="16" height="16" rx="7" fill="${skin}"/>`;
-  s += `<ellipse cx="50" cy="54" rx="25" ry="29" fill="${skin}"/>`;
-  s += `<ellipse cx="24.5" cy="56" rx="4" ry="5" fill="${skin}"/><ellipse cx="75.5" cy="56" rx="4" ry="5" fill="${skin}"/>`;
+  s += `<ellipse cx="50" cy="54" rx="27" ry="29" fill="${skin}" stroke="rgba(43,26,29,.18)" stroke-width="1.2"/>`;
+  s += `<ellipse cx="23" cy="57" rx="4.5" ry="5.5" fill="${skin}" stroke="rgba(43,26,29,.18)" stroke-width="1"/>`;
+  s += `<ellipse cx="77" cy="57" rx="4.5" ry="5.5" fill="${skin}" stroke="rgba(43,26,29,.18)" stroke-width="1"/>`;
+  s += `<ellipse cx="34" cy="62" rx="5" ry="3.4" fill="#E8737F" opacity=".28"/><ellipse cx="66" cy="62" rx="5" ry="3.4" fill="#E8737F" opacity=".28"/>`;
 
   // hair behind the face
   if (hairStyle === 'long') s += `<rect x="22" y="42" width="9" height="30" rx="4.5" fill="${hc}"/><rect x="69" y="42" width="9" height="30" rx="4.5" fill="${hc}"/>`;
@@ -739,16 +760,16 @@ function avatarSVG(a, size = 64) {
   if (browStyle === 'thick') s += `<rect x="34" y="${browY-1}" width="13" height="4.4" rx="2.2" fill="${INK}"/><rect x="53" y="${browY-1}" width="13" height="4.4" rx="2.2" fill="${INK}"/>`;
 
   // eyes
-  if (eyeStyle === 'dot') s += `<circle cx="41" cy="53" r="2.9" fill="${INK}"/><circle cx="59" cy="53" r="2.9" fill="${INK}"/>`;
-  if (eyeStyle === 'round') s += `<circle cx="41" cy="53" r="5.2" fill="#fff"/><circle cx="59" cy="53" r="5.2" fill="#fff"/><circle cx="41.5" cy="53.5" r="2.6" fill="${INK}"/><circle cx="59.5" cy="53.5" r="2.6" fill="${INK}"/>`;
+  if (eyeStyle === 'dot') s += `<circle cx="41" cy="52.5" r="4" fill="${INK}"/><circle cx="59" cy="52.5" r="4" fill="${INK}"/><circle cx="42.4" cy="51.2" r="1.2" fill="#fff" opacity=".85"/><circle cx="60.4" cy="51.2" r="1.2" fill="#fff" opacity=".85"/>`;
+  if (eyeStyle === 'round') s += `<circle cx="41" cy="52.5" r="6.4" fill="#fff" stroke="${INK}" stroke-width="1.2"/><circle cx="59" cy="52.5" r="6.4" fill="#fff" stroke="${INK}" stroke-width="1.2"/><circle cx="41.6" cy="53" r="3.2" fill="${INK}"/><circle cx="59.6" cy="53" r="3.2" fill="${INK}"/>`;
   if (eyeStyle === 'sleepy') s += `<path d="M36.5 53 q4.5 3.5 9 0" stroke="${INK}" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M54.5 53 q4.5 3.5 9 0" stroke="${INK}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
   if (eyeStyle === 'happy') s += `<path d="M36.5 55 q4.5 -6 9 0" stroke="${INK}" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M54.5 55 q4.5 -6 9 0" stroke="${INK}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
 
   // mouth
-  if (mouthStyle === 'smile') s += `<path d="M41 65 q9 8 18 0" stroke="${INK}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
+  if (mouthStyle === 'smile') s += `<path d="M39 64 q11 11 22 0" stroke="${INK}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
   if (mouthStyle === 'small') s += `<path d="M45 66 q5 4 10 0" stroke="${INK}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
   if (mouthStyle === 'neutral') s += `<rect x="43" y="66" width="14" height="2.6" rx="1.3" fill="${INK}"/>`;
-  if (mouthStyle === 'open') s += `<ellipse cx="50" cy="68" rx="7" ry="5" fill="${INK}"/>`;
+  if (mouthStyle === 'open') s += `<path d="M42 64 q8 -3 16 0 q-2 8 -8 8 q-6 0 -8 -8 z" fill="${INK}"/>`;
   if (mouthStyle === 'smirk') s += `<path d="M42 67 q7 5 16 -1" stroke="${INK}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
 
   // glasses
@@ -768,23 +789,26 @@ function avatarchip(a, size = 34) {
 }
 
 /* ---------- India place search ---------- */
-let PLACES = null, placePicked = null;
+let PLACES = null, placePicked = null, editPlacePicked = null;
 async function loadPlaces() {
   if (PLACES) return;
   try { PLACES = await (await fetch('/geo.json')).json(); } catch { PLACES = []; }
 }
-function showCities(q) {
-  const box = $('#city-list'); if (!box || !PLACES) return;
+function showCities(q, listId = 'city-list') {
+  const box = document.getElementById(listId); if (!box || !PLACES) return;
   const s = String(q || '').trim().toLowerCase();
   if (s.length < 2) { box.style.display = 'none'; box.innerHTML = ''; return; }
   const starts = PLACES.filter(p => p[0].toLowerCase().startsWith(s));
   const extra = starts.length >= 8 ? [] : PLACES.filter(p => p[0].toLowerCase().includes(s) && !p[0].toLowerCase().startsWith(s));
   const hits = [...starts, ...extra].slice(0, 8);
   if (!hits.length) { box.innerHTML = '<div class="cityrow">No place found — try another spelling</div>'; box.style.display = 'block'; return; }
-  box.innerHTML = hits.map(p => `<div class="cityrow" data-city="${esc(p[0])}" data-state="${esc(p[1] || '')}" data-lat="${p[2]}" data-lon="${p[3]}">${esc(p[0])}${p[1] ? `<span>${esc(p[1])}</span>` : ''}</div>`).join('');
+  box.innerHTML = hits.map(p => `<div class="cityrow" data-list="${listId}" data-city="${esc(p[0])}" data-state="${esc(p[1] || '')}" data-lat="${p[2]}" data-lon="${p[3]}">${esc(p[0])}${p[1] ? `<span>${esc(p[1])}</span>` : ''}</div>`).join('');
   box.style.display = 'block';
 }
-document.addEventListener('input', e => { if (e.target.id === 'a-city') { placePicked = null; $('#city-confirm').textContent = ''; showCities(e.target.value); } });
+document.addEventListener('input', e => {
+  if (e.target.id === 'a-city') { placePicked = null; $('#city-confirm').textContent = ''; showCities(e.target.value, 'city-list'); }
+  if (e.target.id === 'e-city') { editPlacePicked = null; showCities(e.target.value, 'e-city-list'); }
+});
 
 let lastTyping = 0;
 document.addEventListener('input', e => {
@@ -815,30 +839,45 @@ function openReport() {
 function openAvatar() {
   const cur = S.me.user.avatar || { skin: 2, hairColor: 0, hair: 1, eyes: 0, brow: 0, mouth: 0, glasses: 0, hat: 0 };
   S.av = Object.assign({}, cur);
-  const swatches = (k, list, colours) => `
-    <p class="lbl" style="margin:12px 0 6px">${k === 'hairColor' ? 'hair colour' : k}</p>
-    <div class="opts">${list.map((v, i) => colours
-      ? `<button class="sw ${S.av[k] === i ? 'on' : ''}" data-act="avopt" data-k="${k}" data-v="${i}" style="background:${v}" aria-label="${k} ${i + 1}"></button>`
+  const row = (k, label, list, colours) => `
+    <p class="lbl" style="margin:14px 0 7px">${label}</p>
+    <div class="opts" data-group="${k}">${list.map((v, i) => colours
+      ? `<button class="sw ${S.av[k] === i ? 'on' : ''}" data-act="avopt" data-k="${k}" data-v="${i}" style="background:${v}" aria-label="${label} ${i + 1}"></button>`
       : `<button class="chip ${S.av[k] === i ? 'on' : ''}" data-act="avopt" data-k="${k}" data-v="${i}">${v}</button>`).join('')}</div>`;
   $('#sheet').innerHTML = `<div class="sheet" data-act="closesheet"><div class="inner">
-    <h3 style="margin-bottom:10px">Your avatar</h3>
-    <div style="display:flex;justify-content:center;margin-bottom:6px">${avatarSVG(S.av, 120)}</div>
-    ${swatches('skin', AV.skin, true)}
-    ${swatches('hair', AV.hair, false)}
-    ${swatches('hairColor', AV.hairColor, true)}
-    ${swatches('eyes', AV.eyes, false)}
-    ${swatches('mouth', AV.mouth, false)}
-    ${swatches('brow', AV.brow, false)}
-    ${swatches('glasses', AV.glasses, false)}
-    ${swatches('hat', AV.hat, false)}
-    <div style="display:flex;gap:8px;margin-top:16px">
+    <h3 style="margin-bottom:2px">Your avatar</h3>
+    <p class="tiny" style="margin-bottom:10px">Tap a part to change it. Shuffle until it looks like you-ish.</p>
+    <div class="body">
+      <div id="avpreview" style="display:flex;justify-content:center;margin:4px 0 6px">${avatarSVG(S.av, 132)}</div>
+      ${row('skin', 'skin', AV.skin, true)}
+      ${row('hair', 'hair', AV.hair, false)}
+      ${row('hairColor', 'hair colour', AV.hairColor, true)}
+      ${row('eyes', 'eyes', AV.eyes, false)}
+      ${row('mouth', 'mouth', AV.mouth, false)}
+      ${row('brow', 'brows', AV.brow, false)}
+      ${row('glasses', 'glasses', AV.glasses, false)}
+      ${row('hat', 'hat', AV.hat, false)}
+    </div>
+    <div class="foot">
       <button class="ghost" style="flex:1" data-act="avshuffle">Shuffle</button>
       <button class="p" style="flex:2" data-act="avsave">Save avatar</button>
     </div>
   </div></div>`;
 }
 
+/* update only what changed — no rebuild, so the scroll position stays put */
+function refreshAvatar() {
+  const pv = document.getElementById('avpreview');
+  if (pv) pv.innerHTML = avatarSVG(S.av, 132);
+  for (const [k, v] of Object.entries(S.av)) {
+    const group = document.querySelector(`.opts[data-group="${k}"]`);
+    if (!group) continue;
+    [...group.children].forEach((b, i) => b.classList.toggle('on', i === v));
+  }
+}
+
 function openEdit() {
+  loadPlaces();
   const u = S.me.user, c = S.me.chart;
   $('#sheet').innerHTML = `<div class="sheet" data-act="closesheet"><div class="inner" style="max-height:88vh;overflow-y:auto">
     <h3 style="margin-bottom:4px">Edit your details</h3>
@@ -849,7 +888,8 @@ function openEdit() {
       <label class="f"><span>birth date</span><input id="e-dob" type="date" value="${esc(c.dob || '')}"></label>
       <label class="f"><span>birth time</span><input id="e-tob" type="time" value="${esc(S.me.tob || '')}"></label>
     </div>
-    <label class="f"><span>birth place</span><input id="e-city" value="${esc(u.city)}"></label>
+    <label class="f"><span>birth place</span><input id="e-city" value="${esc(u.city)}" autocomplete="off"></label>
+    <div class="citylist" id="e-city-list"></div>
     <label class="f"><span>show me</span>
       <div class="seg" id="e-pref">${['Men','Women','Anyone'].map(p => `<button data-ep="${p}" aria-pressed="${u.pref === p}">${p}</button>`).join('')}</div>
     </label>
@@ -903,6 +943,7 @@ function scrollMsgs() { const m = $('#msgs'); if (m) m.scrollTop = m.scrollHeigh
 function logout() { localStorage.removeItem('milao_token'); S.token = null; S.me = null; stopPoll(); render(); }
 
 async function boot() {
+  loadPlaces();
   try {
     await refreshMe();
     S.tests = (await api('/api/tests')).tests;
