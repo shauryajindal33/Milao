@@ -498,6 +498,10 @@ let EXPLAIN_HI = null;
 try { EXPLAIN_HI = JSON.parse(fs.readFileSync(path.join(__dirname, 'explain-hi.json'), 'utf8')); }
 catch { console.error('explain-hi.json missing'); }
 
+let MEANS_HI = null;
+try { MEANS_HI = JSON.parse(fs.readFileSync(path.join(__dirname, 'means-hi.json'), 'utf8')); }
+catch { console.error('means-hi.json missing'); }
+
 let PLACES = [];
 try { PLACES = JSON.parse(fs.readFileSync(path.join(__dirname, 'geo.json'), 'utf8')); }
 catch { console.error('geo.json missing — place lookup will fail'); }
@@ -1135,11 +1139,22 @@ function ageOf(dob) {
   if (m < 0 || (m === 0 && n.getDate() < b.getDate())) a--;
   return a;
 }
+function liveScore(c, me) {
+  const otherId = c.a.uid === me.id ? c.b.uid : c.a.uid;
+  const other = db.users[otherId];
+  if (!other) return c.score;
+  try {
+    const m = matchScore(me, other);
+    return m.score;
+  } catch { return c.score; }
+}
 function chatView(c, me) {
   const otherId = c.a.uid === me.id ? c.b.uid : c.a.uid;
   const other = db.users[otherId];
+  const live = liveScore(c, me);
   return {
-    id: c.id, score: c.score, band: band(c.score), groups: c.groups,
+    id: c.id, score: live, band: band(live), groups: c.groups,
+    scoreAtMatch: c.score,
     startedAt: c.startedAt, endedAt: c.endedAt, endedBy: c.endedBy === me.id ? 'me' : 'them',
     peer: other ? { id: other.id, avatar: other.avatar || null, name: other.name, status: other.status || '', age: ageOf(other.dob), city: other.city, tier: tierOf(cibilOf(other)).name } : null,
     messages: c.messages.map(m => ({ from: m.uid === me.id ? 'me' : 'them', text: m.text, at: m.at })),
@@ -1346,7 +1361,7 @@ function createServer() {
       }
 
       if (method === 'GET' && p === '/api/descriptions') {
-        return send(res, 200, { descriptions: DESCRIBE_HI || {}, explain: EXPLAIN_HI || {} });
+        return send(res, 200, { descriptions: DESCRIBE_HI || {}, explain: EXPLAIN_HI || {}, means: MEANS_HI || {} });
       }
       if (method === 'GET' && p === '/api/me') {
         return send(res, 200, {
@@ -1471,7 +1486,7 @@ function createServer() {
             queued: !!myEntry,
             position,
             peer: chat ? chatView(chat, me).peer : null,
-            score: chat ? chat.score : null,
+            score: chat ? liveScore(chat, me) : null,
             band: chat ? band(chat.score) : null,
             messages: chat ? chat.messages.length : 0,
             lastFrom: last ? (last.uid === me.id ? 'me' : 'them') : null
