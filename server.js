@@ -1671,52 +1671,80 @@ a{color:#B0203C}hr{border:0;border-top:1px solid #e6d5d8;margin:26px 0}</style>
 
 function adminPage(token) {
   const ok = ADMIN_TOKEN && token === ADMIN_TOKEN;
-  return `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">
+  return `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#FBF2EF">
+<link rel="icon" href="/favicon.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Milao admin">
 <title>Milao admin</title>
 <style>
-body{font:14px/1.55 ui-monospace,SFMono-Regular,monospace;background:#1A1512;color:#F3EADC;padding:22px;max-width:880px;margin:auto}
-h1{font-size:15px;letter-spacing:.16em;text-transform:uppercase;color:#D9885A;margin:0 0 4px}
-p.sub{color:#B3A392;margin:0 0 20px;font-size:12px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:24px}
-.k{background:#241C17;border:1px solid #3A2E24;border-radius:10px;padding:12px}
-.k b{display:block;font-size:22px;color:#F3EADC}
-.k span{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#8A7B6B}
-h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#B3A392;margin:22px 0 8px}
-table{width:100%;border-collapse:collapse;font-size:12px}
-td,th{border-bottom:1px solid #3A2E24;padding:7px 6px;text-align:left;vertical-align:top}
-th{color:#8A7B6B;font-weight:400;font-size:10px;letter-spacing:.1em;text-transform:uppercase}
-button{font:inherit;font-size:11px;background:#3A2418;color:#D9885A;border:1px solid #5A3A24;border-radius:7px;padding:5px 9px;cursor:pointer}
-.tag{font-size:10px;padding:2px 6px;border-radius:99px;background:#3A1F1A;color:#E58B7F}
+:root{--bg:#FBF2EF;--surface:#FFFBF9;--surface-2:#F7E8E4;--ink:#2B1A1D;--dim:#7B5D60;--faint:#A98C8E;
+  --line:rgba(43,26,29,.15);--line-soft:rgba(43,26,29,.07);--teal:#B0203C;--teal-soft:#F8DEE3;
+  --green:#2F7A50;--red:#7E1F2C;--green-soft:#E2F0E6;--red-soft:#F5DFE1;
+  --serif:"Instrument Serif",Georgia,serif;--sans:"IBM Plex Sans","Segoe UI",sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root{--bg:#160F11;--surface:#1F1418;--surface-2:#271A1F;--ink:#F8EDEA;--dim:#C2A6A8;--faint:#8F7477;
+  --line:rgba(248,237,234,.15);--line-soft:rgba(248,237,234,.07);--teal:#F2687D;--teal-soft:#3A1A23;
+  --green:#6FBF8E;--red:#E58B95;--green-soft:#1B2C22;--red-soft:#331A1E}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0 auto;background:var(--bg);color:var(--ink);font-family:var(--sans);max-width:560px;
+  padding:0 16px calc(28px + env(safe-area-inset-bottom));-webkit-font-smoothing:antialiased}
+header{display:flex;align-items:baseline;justify-content:space-between;padding:22px 0 14px}
+header h1{font-family:var(--serif);font-size:26px;margin:0}
+header h1 i{font-style:normal;color:var(--teal)}
+header span{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.k{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
+.k b{display:block;font-family:var(--serif);font-size:24px;line-height:1.1}
+.k span{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+h2{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 10px}
+.rep{border-bottom:1px solid var(--line-soft);padding:11px 0}
+.rep:last-child{border-bottom:0}
+.rep .who{font-weight:600;font-size:14px}
+.rep .mail{font-family:var(--mono);font-size:11px;color:var(--dim);word-break:break-all}
+.rep .meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px}
+.chip{font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:99px;background:var(--surface-2);color:var(--dim)}
+.chip.red{background:var(--red-soft);color:var(--red)}
+button{font-family:var(--sans);font-size:12px;padding:7px 12px;border-radius:9px;border:1px solid var(--line);
+  background:var(--surface);color:var(--teal);cursor:pointer;margin-top:8px}
+button:active{background:var(--teal-soft)}
+.empty{color:var(--faint);font-size:13px;padding:8px 0;line-height:1.6}
+.note{font-size:11.5px;color:var(--faint);line-height:1.6;margin:0 0 14px}
 </style>
-<h1>Milao admin</h1>
-${ok ? `<p class="sub">Private. This page shows emails. Do not share the link.</p>
+<header><h1>Milao<i>.</i></h1><span>admin</span></header>
+${ok ? `
+<p class="note">Private. This page shows email addresses — do not share the link.</p>
 <div class="grid" id="stats"></div>
-<h2>Reports</h2>
-<table><thead><tr><th>when</th><th>reason</th><th>reported</th><th>by</th><th></th></tr></thead><tbody id="reports"></tbody></table>
+<div class="card"><h2>Reports</h2><div id="reports"></div></div>
 <script>
-const T = '${token}';
-const ago = t => { const s = Math.round((Date.now() - t) / 60000); return s < 60 ? s + 'm' : Math.round(s / 60) + 'h'; };
-async function load() {
-  const s = await (await fetch('/api/admin/stats?token=' + T)).json();
-  document.getElementById('stats').innerHTML = Object.entries(s).map(([k, v]) =>
-    '<div class="k"><b>' + v + '</b><span>' + k.replace(/([A-Z])/g, ' $1').toLowerCase() + '</span></div>').join('');
-  const r = await (await fetch('/api/admin/reports?token=' + T)).json();
-  document.getElementById('reports').innerHTML = r.reports.map(x =>
-    '<tr><td>' + ago(x.at) + '</td><td>' + x.reason + '</td><td>' +
-    (x.to ? x.to.name + '<br><small>' + x.to.email + '</small>' : '?') +
-    (x.to && x.to.suspended ? ' <span class="tag">suspended</span>' : '') +
-    '</td><td>' + (x.from ? x.from.name : '?') + '</td><td><button data-id="' + (x.to ? x.to.id : '') + '" data-s="' + (x.to && x.to.suspended ? '0' : '1') + '">' + (x.to && x.to.suspended ? 'unsuspend' : 'suspend') + '</button></td></tr>'
-  ).join('') || '<tr><td colspan="5" style="color:#8A7B6B">no reports yet</td></tr>';
+const T='${token}';
+const ago=t=>{const s=Math.round((Date.now()-t)/60000);return s<60?s+'m ago':Math.round(s/60)+'h ago'};
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function load(){
+  const s=await (await fetch('/api/admin/stats?token='+T)).json();
+  const order=['users','signupsToday','activeToday','withTests','chatted','chats','chatsWithReply','messages','avgMessagesPerChat','reports','reportsPer100Chats','suspended','queued'];
+  document.getElementById('stats').innerHTML=order.filter(k=>k in s).map(k=>{
+    const label=k.replace(/([A-Z])/g,' $1').toLowerCase();
+    return '<div class="k"><b>'+esc(s[k])+'</b><span>'+label+'</span></div>';
+  }).join('');
+  const r=await (await fetch('/api/admin/reports?token='+T)).json();
+  document.getElementById('reports').innerHTML = r.reports.length ? r.reports.map(x=>
+    '<div class="rep"><div class="who">'+esc(x.to?x.to.name:'unknown')+
+    (x.to&&x.to.suspended?' <span class="chip red">suspended</span>':'')+'</div>'+
+    (x.to?'<div class="mail">'+esc(x.to.email)+'</div>':'')+
+    '<div class="meta"><span class="chip">'+esc(x.reason)+'</span><span class="chip">'+ago(x.at)+'</span>'+
+    '<span class="chip">by '+esc(x.from?x.from.name:'?')+'</span></div>'+
+    '<button data-id="'+esc(x.to?x.to.id:'')+'" data-s="'+(x.to&&x.to.suspended?'0':'1')+'">'+
+    (x.to&&x.to.suspended?'Lift suspension':'Suspend')+'</button></div>').join('')
+    : '<div class="empty">No reports yet. When someone is reported it shows here with the reporter and the reason.</div>';
 }
-document.addEventListener('click', async e => {
-  const b = e.target.closest('button[data-id]');
-  if (!b) return;
-  await fetch('/api/admin/suspend?token=' + T, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId: b.dataset.id, suspend: b.dataset.s === '1' }) });
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('button[data-id]'); if(!b) return;
+  await fetch('/api/admin/suspend?token='+T,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({userId:b.dataset.id,suspend:b.dataset.s==='1'})});
   load();
 });
-load(); setInterval(load, 15000);
-</script>` : `<p class="sub">Open as /admin?token=YOUR_ADMIN_TOKEN after setting ADMIN_TOKEN on the server.</p>`}`;
+load(); setInterval(load,15000);
+</script>` : `<div class="card"><h2>Locked</h2><p class="empty">Open this page as <code>/admin?token=YOUR_ADMIN_TOKEN</code> after setting ADMIN_TOKEN on the server.</p></div>`}`;
 }
 
 if (require.main === module) {

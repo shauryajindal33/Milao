@@ -117,6 +117,8 @@ nav button[aria-pressed=true]{color:var(--teal)}
 .avbtn{background:none;border:0;padding:0;line-height:0;cursor:pointer;border-radius:50%}
 .avbtn svg{border-radius:50%;display:block}
 .avempty{width:40px;height:40px;border-radius:50%;background:var(--surface-2);display:grid;place-items:center;color:var(--faint);font-size:18px;border:1px dashed var(--line)}
+.langpick{display:flex;gap:6px;justify-content:flex-end;margin-bottom:10px}
+.langpick .chip{font-family:var(--mono);font-size:10px;padding:5px 9px}
 .avchip{display:inline-flex;flex:0 0 auto;border-radius:50%;overflow:hidden;line-height:0}
 .opts{display:flex;flex-wrap:wrap;gap:6px}
 .chip{font-size:12px;padding:6px 11px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--dim);cursor:pointer;font-family:var(--sans)}
@@ -176,12 +178,13 @@ hr.sep{border:0;border-top:1px solid var(--line-soft);margin:12px 0}
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const TABS = [
-  ['home', 'Slots', '<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/>'],
-  ['tests', 'Character', '<path d="M9 4h6v3H9z"/><path d="M7 5H5v16h14V5h-2"/><path d="M9 12h6M9 16h4"/>'],
-  ['profile', 'Me', '<path d="M12 12a4 4 0 100-8 4 4 0 000 8z"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/>']
+  ['home', 'SLOT', '<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/>'],
+  ['tests', 'CHAR', '<path d="M9 4h6v3H9z"/><path d="M7 5H5v16h14V5h-2"/><path d="M9 12h6M9 16h4"/>'],
+  ['profile', 'ME', '<path d="M12 12a4 4 0 100-8 4 4 0 000 8z"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/>']
 ];
 
 let S = {
+  lang: localStorage.getItem('milao_lang') || 'en',
   token: localStorage.getItem('milao_token') || null,
   tab: 'home', authMode: 'signup', me: null, tests: null,
   state: null, chat: null, run: null, poll: null, chatPoll: null, busy: false, gender: 'Woman', pref: 'Men'
@@ -225,7 +228,7 @@ const topBar = () => `<span class="brand">Milao<i>.</i></span><span class="grow"
   ${S.me ? `<span class="badge">${esc(S.me.cibil.tier)} · ${S.me.cibil.slots} slots</span>` : `<span class="lbl">strangers, sorted</span>`}`;
 const navBar = () => TABS.map(([id, label, icon]) =>
   `<button data-act="tab" data-tab="${id}" aria-pressed="${S.tab === id}">
-     <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>${label}</button>`).join('');
+     <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>${t(id === 'home' ? 'slots' : id === 'tests' ? 'character' : 'me')}</button>`).join('');
 function viewTab() {
   if (S.run) return S.run.result ? viewResult() : viewRun();
   if (S.tab === 'home') return viewHome();
@@ -240,8 +243,8 @@ function viewAuth() {
     return `<h1 style="margin-bottom:6px">Check your email.</h1>
       <p class="dim small" style="margin:8px 0 16px">We sent a six-digit code to <b>${esc(S.pendingEmail || '')}</b>. It expires in ten minutes.</p>
       ${S.devCode ? `<p class="tiny" style="margin-bottom:12px">No mail service configured — your code is <b>${esc(S.devCode)}</b></p>` : ''}
-      <label class="f"><span>code</span><input id="o-code" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code"></label>
-      <button class="p w" data-act="verifyotp">Verify</button>
+      <label class="f"><span>${t('code')}</span><input id="o-code" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code"></label>
+      <button class="p w" data-act="verifyotp">${t('verify')}</button>
       <button class="ghost w" style="margin-top:8px" data-act="authmode" data-v="signup">Back</button>`;
   }
   if (S.authMode === 'forgot') {
@@ -263,38 +266,39 @@ function viewAuth() {
   return `
     <h1 style="margin-bottom:6px">${su ? 'Strangers, sorted<br>by character.' : 'Welcome back.'}</h1>
     <p class="dim small" style="margin:8px 0 16px">${su ? 'Fill in your birth details and your character, and we will show you how well you match the person you are about to talk to.' : 'Sign in to your slots.'}</p>
+    ${langPicker()}
     <div class="seg" style="margin-bottom:14px">
-      <button data-act="authmode" data-v="signup" aria-pressed="${su}">Sign up</button>
-      <button data-act="authmode" data-v="login" aria-pressed="${!su}">Sign in</button>
+      <button data-act="authmode" data-v="signup" aria-pressed="${su}">${t('signup')}</button>
+      <button data-act="authmode" data-v="login" aria-pressed="${!su}">${t('signin')}</button>
     </div>
     ${su ? `
-      <label class="f"><span>email — never shown to anyone</span><input id="a-email" type="email" placeholder="you@example.com"></label>
-      <label class="f"><span>password</span>
+      <label class="f"><span>${t('email')}</span><input id="a-email" type="email" placeholder="you@example.com"></label>
+      <label class="f"><span>${t('password')}</span>
         <div class="pw"><input id="a-pass" type="password" placeholder="8 characters minimum"><button type="button" class="eye" data-act="togglepw" data-target="a-pass" aria-label="show password">
             <svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
           </button></div>
       </label>
       <div class="row">
-        <label class="f"><span>name people see</span><input id="a-name" maxlength="24" placeholder="Aarav"></label>
+        <label class="f"><span>${t('name')}</span><input id="a-name" maxlength="24" placeholder="Aarav"></label>
         <label class="f"><span>your age</span><input id="a-dob" type="date" value="1998-01-01"></label>
       </div>
-      <label class="f"><span>status — 50 characters, the only thing they read before you speak</span><input id="a-status" maxlength="50" placeholder="Ask me about filter coffee"></label>
+      <label class="f"><span>${t('status')}</span><input id="a-status" maxlength="50" placeholder="Ask me about filter coffee"></label>
       <div class="row">
-        <label class="f"><span>i am</span>
+        <label class="f"><span>${t('iam')}</span>
           <div class="seg" id="a-gender"><button data-g="Woman" aria-pressed="true">Woman</button><button data-g="Man" aria-pressed="false">Man</button></div>
         </label>
-        <label class="f"><span>show me</span>
+        <label class="f"><span>${t('showme')}</span>
           <div class="seg" id="a-pref"><button data-p="Men" aria-pressed="true">Men</button><button data-p="Women" aria-pressed="false">Women</button><button data-p="Anyone" aria-pressed="false">Anyone</button></div>
         </label>
       </div>
       <div class="row">
-        <label class="f"><span>birth time — optional</span><input id="a-tob" type="time"></label>
-        <label class="f"><span>birth place</span><input id="a-city" placeholder="Start typing…" autocomplete="off"></label>
+        <label class="f"><span>${t('birthtime')}</span><input id="a-tob" type="time"></label>
+        <label class="f"><span>${t('birthplace')}</span><input id="a-city" placeholder="Start typing…" autocomplete="off"></label>
       </div>
       <div class="citylist" id="city-list"></div>
       <div class="tiny" id="city-confirm" style="margin:-6px 0 10px"></div>
       <p class="tiny" style="margin:-2px 0 14px">Birth place is required; birth time sharpens the moon and nakshatra. 18+ only. By creating an account you agree to the <a href="/terms" target="_blank">Terms</a> and <a href="/guidelines" target="_blank">guidelines</a>.</p>
-      <button class="p w" data-act="signup">Create my character</button>
+      <button class="p w" data-act="signup">${t('create')}</button>
     ` : `
       <label class="f"><span>email</span><input id="a-email" type="email" placeholder="you@example.com"></label>
       <label class="f"><span>password</span>
@@ -319,7 +323,7 @@ function viewHome() {
       <p class="small" style="margin-bottom:10px">Every test you finish sharpens the match score and lifts your tier. Finish them to unlock more slots.</p>
       <button class="p w" data-act="tab" data-tab="tests">Continue</button>
     </div>` : ''}
-    <div class="hd" style="margin:2px 0 10px"><h2>Your slots</h2><span class="lbl">${st.queueSize} waiting now</span></div>
+    <div class="hd" style="margin:2px 0 10px"><h2>${t('yourslots')}</h2><span class="lbl">${st.queueSize} ${t('waiting')}</span></div>
     <div class="slots">${st.slots.map(slotCard).join('')}</div>
     <p class="tiny">Tap an empty slot to join the queue — each slot keeps its own place in line. You are matched with whoever has been waiting longest who wants someone like you. Minimise a chat with ⌄ and it keeps running while you use your other slots.</p>`;
 }
@@ -345,14 +349,14 @@ function slotCard(s) {
   if (s.queued) {
     return `<button class="slot searching" data-act="unqueue" data-slot="${s.index}">
       <div class="idx">slot ${s.index + 1}</div>
-      <div><span class="dot"></span><b style="font-size:13px">Searching…</b></div>
+      <div><span class="dot"></span><b style="font-size:13px">${t('searching')}…</b></div>
       <div class="sub">${s.position ? `queue #${s.position}` : 'waiting'} · tap to cancel</div>
     </button>`;
   }
   return `<button class="slot empty" data-act="queue" data-slot="${s.index}">
     <div class="idx">slot ${s.index + 1}</div>
     <div class="big" style="color:var(--teal)">Find my match</div>
-    <div class="sub">tap to start</div>
+    <div class="sub">${t('tapstart')}</div>
   </button>`;
 }
 
@@ -365,7 +369,7 @@ function viewChat() {
       <button class="ghost" data-act="closechat" style="padding:6px 11px;font-size:17px" title="Minimise — the chat keeps running">⌄</button>
       ${c.peer?.avatar ? avatarchip(c.peer.avatar, 34) : ''}
       <div style="min-width:0;flex:1">
-        <div style="font-weight:600;font-size:15px;line-height:1.2">${esc(c.peer?.name || '')}${c.peerTyping ? ' <span class="typing">typing…</span>' : ''}</div>
+        <div style="font-weight:600;font-size:15px;line-height:1.2">${esc(c.peer?.name || '')}${c.peerTyping ? ` <span class="typing">${t('typing')}</span>` : ''}</div>
         <div class="sub" style="font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.peer?.status || '')}</div>
       </div>
       <span class="scorepill s-${band}">${c.score}</span>
@@ -373,15 +377,15 @@ function viewChat() {
     </div>
     <div class="msgs" id="msgs">
       ${!c.messages.length && !c.endedAt ? `<div class="empty">
-        <p style="font-family:var(--serif);font-size:22px;margin:0 0 6px">You matched at ${c.score}.</p>
-        <p class="tiny" style="margin:0">Nothing has been said yet. Open with something only they could answer.</p>
+        <p style="font-family:var(--serif);font-size:22px;margin:0 0 6px">${t('matchedat')} ${c.score}.</p>
+        <p class="tiny" style="margin:0">${t('nothingyet')}</p>
       </div>` : ''}
       ${c.messages.length ? c.messages.map(m => `<div class="m ${m.from === 'me' ? 'me' : ''}">${esc(m.text)}<span class="t">${new Date(m.at).toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit'})}</span></div>`).join('') : ''}
-      ${c.endedAt ? `<div class="ended">${c.endedBy === 'me' ? 'You left the chat.' : 'This person left the chat.'}<br><button class="p" style="margin-top:12px" data-act="closechat">Find my match</button></div>` : ''}
+      ${c.endedAt ? `<div class="ended">${c.endedBy === 'me' ? t('youleft') : t('theyleft')}<br><button class="p" style="margin-top:12px" data-act="closechat">${t('findmatch')}</button></div>` : ''}
     </div>
     ${c.endedAt ? '' : `<div class="composer">
-      <input id="msgbox" placeholder="Say something real" autocomplete="off">
-      <button class="p" data-act="sendmsg">Send</button>
+      <input id="msgbox" placeholder="${t('sayreal')}" autocomplete="off">
+      <button class="p" data-act="sendmsg">${t('send')}</button>
     </div>`}
   </div>`;
 }
@@ -448,27 +452,28 @@ function viewProfile() {
       <h2 style="flex:1;margin:0">${esc(m.user.name)}</h2>
       <span class="lbl">${esc(m.user.city)} · ${m.user.age}</span>
     </div>
+    ${langPicker()}
     <div class="chips"><span class="chip t">${esc(m.cibil.tier)}</span><span class="chip">${m.cibil.slots} slots</span><span class="chip">${esc(m.user.gender)}</span><span class="chip">sees ${esc(m.user.pref.toLowerCase())}</span></div>
     <hr class="sep">
     <p class="small dim" style="margin-bottom:8px">"${esc(m.status || 'no status yet')}"</p>
     <div class="row">
-      <button class="ghost" data-act="editprofile">Edit details</button>
-      <button class="ghost" data-act="logout">Sign out</button>
+      <button class="ghost" data-act="editprofile">${t('editdetails')}</button>
+      <button class="ghost" data-act="logout">${t('signout')}</button>
     </div>
     <div class="tiny" style="margin-top:12px;line-height:1.9">
       <a href="/terms" target="_blank">Terms</a> · <a href="/privacy" target="_blank">Privacy</a> ·
       <a href="/guidelines" target="_blank">Guidelines</a> · <a href="mailto:grievance@milaochat.com">Contact</a>
     </div>
-    <button class="ghost w" style="margin-top:10px;color:var(--red)" data-act="delaccount">Delete my account</button>
+    <button class="ghost w" style="margin-top:10px;color:var(--red)" data-act="delaccount">${t('deleteacc')}</button>
   </div>
 
   <div class="card">
-    <div class="hd"><h3>Your tier</h3><span class="lbl">${esc(m.cibil.tier)}</span></div>
+    <div class="hd"><h3>${t('yourtier')}</h3><span class="lbl">${esc(m.cibil.tier)}</span></div>
     <div class="prog"><i style="width:${Math.min(100, Math.round((m.cibil.score - (m.cibil.next ? m.cibil.next.min - 100 : m.cibil.score)) / 100 * 100))}%"></i></div>
     <p class="tiny" style="margin-top:8px">${m.cibil.next ? `Keep replying and finishing tests to reach ${m.cibil.next.name} (${m.cibil.next.slots} slots).` : 'Top tier. Ten slots.'} We do not show the number — only the tier.</p>
-    <div class="kv"><span class="dim">Chats</span><b>${m.stats.chats || 0}</b></div>
-    <div class="kv"><span class="dim">Messages</span><b>${m.stats.messages || 0}</b></div>
-    <div class="kv"><span class="dim">Times you left early</span><b>${m.stats.skips || 0}</b></div>
+    <div class="kv"><span class="dim">${t('chats')}</span><b>${m.stats.chats || 0}</b></div>
+    <div class="kv"><span class="dim">${t('messages')}</span><b>${m.stats.messages || 0}</b></div>
+    <div class="kv"><span class="dim">${t('leftearly')}</span><b>${m.stats.skips || 0}</b></div>
   </div>
 
   <div class="card">
@@ -526,7 +531,8 @@ function viewProfile() {
     ${kvExplain('Enneagram', r.enneagram?.summary?.ennea, DESCRIBE.ennea[r.enneagram?.summary?.ennea])}
 
     ${kvExplain('Conflict', r.conflict?.summary?.conflict, DESCRIBE.conflict[r.conflict?.summary?.conflict])}
-    ${kvExplain('Values', r.values ? r.values.summary.top.map(v => DESCRIBE.valueName[v]).join(', ') : null, 'What you rate highest of the ten basic values. We compare the whole profile, not just the top two — two people who value the same things argue less about how to live.')}
+    ${kvExplain('Values', r.values ? r.values.summary.top.map(v => DESCRIBE.valueName[v]).join(', ') : null,
+      r.values ? r.values.summary.top.map(v => DESCRIBE.valueMeaning[v]).join('  ') : '')}
     ${kvExplain('Empathy', r.empathy?.summary?.level, DESCRIBE.empathy[r.empathy?.summary?.level])}
 
   </div>`;
@@ -583,6 +589,12 @@ document.addEventListener('click', async (e) => {
       S.me.user.avatar = r.avatar;
       closeSheet(); render(); toast('Avatar saved');
     }); break;
+
+    case 'setlang':
+      S.lang = el.dataset.v;
+      localStorage.setItem('milao_lang', S.lang);
+      render();
+      break;
 
     case 'togglepw': {
       const inp = document.getElementById(el.dataset.target);
@@ -777,6 +789,18 @@ const DESCRIBE = {
     steady:'Notices how others feel without being run by it.',
     guarded:'Keeps a step back emotionally. Not cold — careful.'
   },
+  valueMeaning: {
+    sd:'Self-direction — you would rather work it out yourself than be told.',
+    st:'Stimulation — you need new things to stay interested.',
+    he:'Pleasure — you take enjoyment seriously, without guilt.',
+    ac:'Achievement — you measure yourself by what you get done.',
+    po:'Power — you want the say, not just the seat.',
+    se:'Security — you want the ground to stop moving.',
+    co:'Conformity — you keep yourself in check even when nobody is watching.',
+    tr:'Tradition — you keep what was handed to you.',
+    be:'Loyalty — your people come before your principles.',
+    un:'Fairness — you care about strangers as much as your own.'
+  },
   valueName: {
     sd:'self-direction', st:'stimulation', he:'pleasure', ac:'achievement', po:'power',
     se:'security', co:'conformity', tr:'tradition', be:'loyalty', un:'fairness to strangers'
@@ -787,6 +811,64 @@ function kvExplain(label, value, text) {
   if (value == null || value === '' || value === '—') return `<div class="kv"><span class="dim">${label}</span><b>—</b></div>`;
   if (!text) return `<div class="kv"><span class="dim">${label}</span><b>${esc(String(value))}</b></div>`;
   return `<details class="kvd"><summary><span class="dim">${label}</span><b>${esc(String(value))}<i>⌄</i></b></summary><p class="tiny">${esc(text)}</p></details>`;
+}
+
+
+/* ---------- language ---------- */
+const L = {
+  en: {
+    slots:'Slots', character:'Character', me:'Me',
+    signup:'Sign up', signin:'Sign in', email:'email — never shown to anyone', password:'password',
+    name:'name people see', status:'status — 50 characters', iam:'I am', showme:'Show me',
+    woman:'Woman', man:'Man', men:'Men', women:'Women', anyone:'Anyone',
+    birthtime:'birth time — optional', birthplace:'birth place',
+    create:'Create my character', continue:'Continue', verify:'Verify', code:'code',
+    yourslots:'Your slots', waiting:'waiting now', tapstart:'tap to start', searching:'Searching',
+    built:'Your character is', continueBtn:'Continue',
+    sayreal:'Say something real', send:'Send', youleft:'You left the chat.', theyleft:'This person left the chat.',
+    findmatch:'Find my match', chatoptions:'Chat options', leavechat:'Leave the chat', report:'Report',
+    editdetails:'Edit details', signout:'Sign out', deleteacc:'Delete my account',
+    yourtier:'Your tier', chats:'Chats', messages:'Messages', leftearly:'Times you left early',
+    matched:'You have a match', codsent:'Code sent', saved:'Saved',
+    typing:'typing…', matchedat:'You matched at', nothingyet:'Nothing has been said yet. Open with something only they could answer.'
+  },
+  hi: {
+    slots:'स्लॉट', character:'किरदार', me:'मैं',
+    signup:'नया खाता', signin:'साइन इन', email:'ईमेल — किसी को नहीं दिखेगा', password:'पासवर्ड',
+    name:'जो नाम लोग देखेंगे', status:'स्टेटस — 50 अक्षर', iam:'मैं हूँ', showme:'मुझे दिखाओ',
+    woman:'स्त्री', man:'पुरुष', men:'पुरुष', women:'स्त्रियाँ', anyone:'कोई भी',
+    birthtime:'जन्म समय — वैकल्पिक', birthplace:'जन्म स्थान',
+    create:'मेरा किरदार बनाओ', continue:'आगे', verify:'पुष्टि करें', code:'कोड',
+    yourslots:'आपके स्लॉट', waiting:'अभी इंतज़ार में', tapstart:'शुरू करने के लिए दबाएँ', searching:'खोज रहे हैं',
+    built:'आपका किरदार', continueBtn:'आगे बढ़ें',
+    sayreal:'कुछ असली कहिए', send:'भेजें', youleft:'आपने चैट छोड़ दी।', theyleft:'उन्होंने चैट छोड़ दी।',
+    findmatch:'अगला मिलाओ', chatoptions:'चैट विकल्प', leavechat:'चैट छोड़ें', report:'रिपोर्ट',
+    editdetails:'जानकारी बदलें', signout:'साइन आउट', deleteacc:'मेरा खाता हटाओ',
+    yourtier:'आपका स्तर', chats:'बातचीत', messages:'संदेश', leftearly:'जल्दी छोड़ी बार',
+    matched:'आपकी मुलाक़ात हुई', codsent:'कोड भेजा गया', saved:'सेव हो गया',
+    typing:'लिख रहे हैं…', matchedat:'आपकी मुलाक़ात', nothingyet:'अभी कुछ नहीं कहा गया। ऐसा कुछ पूछिए जिसका जवाब सिर्फ़ वही दे सके।'
+  },
+  hinglish: {
+    slots:'Slots', character:'Character', me:'Main',
+    signup:'Naya account', signin:'Sign in', email:'email — kisi ko nahi dikhega', password:'password',
+    name:'jo naam log dekhenge', status:'status — 50 characters', iam:'Main hoon', showme:'Mujhe dikhao',
+    woman:'Ladki', man:'Ladka', men:'Ladke', women:'Ladkiyan', anyone:'Koi bhi',
+    birthtime:'janm samay — optional', birthplace:'janm sthan',
+    create:'Mera character banao', continue:'Aage', verify:'Verify karo', code:'code',
+    yourslots:'Aapke slots', waiting:'abhi wait kar rahe', tapstart:'shuru karne ke liye tap karo', searching:'Dhoond rahe hain',
+    built:'Aapka character', continueBtn:'Aage badho',
+    sayreal:'Kuch asli bolo', send:'Bhejo', youleft:'Aapne chat chhod di.', theyleft:'Unhone chat chhod di.',
+    findmatch:'Agla milao', chatoptions:'Chat options', leavechat:'Chat chhodo', report:'Report',
+    editdetails:'Details badlo', signout:'Sign out', deleteacc:'Mera account delete karo',
+    yourtier:'Aapka tier', chats:'Baatein', messages:'Messages', leftearly:'Jaldi chhodi baar',
+    matched:'Aapki match ho gayi', codsent:'Code bhej diya', saved:'Save ho gaya',
+    typing:'likh rahe hain…', matchedat:'Aapki match', nothingyet:'Abhi kuch nahi kaha gaya. Aisa kuch poocho jiska jawab sirf wahi de sakte hain.'
+  }
+};
+function t(k) { const d = L[S.lang] || L.en; return d[k] || L.en[k] || k; }
+function langPicker() {
+  return `<div class="langpick">${['en','hi','hinglish'].map(x =>
+    `<button class="chip ${S.lang === x ? 'on' : ''}" data-act="setlang" data-v="${x}">${x === 'en' ? 'EN' : x === 'hi' ? 'हिं' : 'Hing'}</button>`).join('')}</div>`;
 }
 
 /* ---------- avatars: layered SVG, no images, no uploads ---------- */
@@ -911,10 +993,10 @@ document.addEventListener('keydown', e => {
 function closeSheet() { $('#sheet').innerHTML = ''; }
 function openReport() {
   $('#sheet').innerHTML = `<div class="sheet" data-act="closesheet"><div class="inner">
-    <h3 style="margin-bottom:10px">Chat options</h3>
-    <button class="p w" data-act="leavechat">Leave the chat</button>
+    <h3 style="margin-bottom:10px">${t('chatoptions')}</h3>
+    <button class="p w" data-act="leavechat">${t('leavechat')}</button>
     <p class="tiny" style="margin:10px 0 8px">The other person keeps their place.</p>
-    <p class="lbl" style="margin-bottom:6px">report</p>
+    <p class="lbl" style="margin-bottom:6px">${t('report')}</p>
     ${['Rude or abusive', 'Spam or selling', 'Underage', 'Something else'].map(r =>
       `<button class="opt" data-act="report" data-reason="${esc(r.toLowerCase())}">${esc(r)}</button>`).join('')}
     <button class="ghost w" data-act="closesheet" style="margin-top:4px">Cancel</button>
