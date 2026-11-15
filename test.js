@@ -9,7 +9,7 @@ const { createServer, db, cibilOf, matchScore, TESTS, TEST_ORDER } = require('./
 
 let pass = 0, fail = 0;
 const ok = (n, c, x = '') => { if (c) { pass++; console.log('  ok   ' + n); } else { fail++; console.log('  FAIL ' + n + (x ? '  → ' + x : '')); } };
-const answersFor = id => { const a = {}; for (const it of TESTS[id].items) a[it.id] = it.options ? 0 : 3; return a; };
+const answersFor = id => { const a = {}; for (const it of TESTS[id].items) a[it.id] = (it.options && it.options.length) ? 0 : 3; return a; };
 
 (async () => {
   const server = createServer();
@@ -48,17 +48,19 @@ const answersFor = id => { const a = {}; for (const it of TESTS[id].items) a[it.
   const BT = B.json.token;
 
   console.log('\n— the test suite —');
-  ok('five tests only', TEST_ORDER.length === 5, TEST_ORDER.join(','));
-  ok('the weak ones are gone', !['disc', 'humour', 'chrono', 'love'].some(t => TEST_ORDER.includes(t)));
-  ok('big five has 20 items', TESTS.big5.items.length === 20);
-  ok('attachment has 12', TESTS.attach.items.length === 12);
+  ok('seven tests', TEST_ORDER.length === 7, TEST_ORDER.join(','));
+  ok('no preference filters posing as traits', !['intent', 'chatstyle', 'love'].some(t => TEST_ORDER.includes(t)));
+  ok('big five is a full instrument', TESTS.big5.items.length === 40);
+  ok('attachment is a full instrument', TESTS.attach.items.length === 18);
+  ok('values is a full instrument', TESTS.values.items.length === 20);
+  ok('empathy is a full instrument', TESTS.empathy.items.length === 12);
   ok('enneagram has 18', TESTS.enneagram.items.length === 18);
   for (const id of TEST_ORDER) {
     const r = await api('POST', '/api/tests/' + id, { answers: answersFor(id) }, AT);
     const r2 = await api('POST', '/api/tests/' + id, { answers: answersFor(id) }, BT);
     if (r.status !== 200 || r2.status !== 200) ok('scored ' + id, false, JSON.stringify(r.json));
   }
-  ok('all five scored', Object.keys((await api('GET', '/api/me', null, AT)).json.results).length === 5);
+  ok('all seven scored', Object.keys((await api('GET', '/api/me', null, AT)).json.results).length === 7);
 
   console.log('\n— weights —');
   const uA = Object.values(db().users).find(u => u.email === 'a@x.com');

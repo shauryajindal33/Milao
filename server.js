@@ -563,103 +563,173 @@ const SCALE = ['Not me', 'A little', 'Somewhat', 'Quite', 'Exactly'];
 
 const TESTS = {
   big5: {
-    title: 'Big Five', blurb: 'Twenty statements. The backbone of the score — the model psychologists actually use.',
-    kind: 'scale', weight: 25,
+    title: 'Big Five', blurb: 'Forty statements. The five-factor model — the backbone of every serious personality score.',
+    kind: 'scale', weight: 30,
     items: [
-      { id:'o1', dim:'O', text:'I look for the strange option on a menu.' },
-      { id:'o2', dim:'O', text:'Routine bores me faster than it bores most people.' },
-      { id:'o3', dim:'O', text:'I would rather improvise a trip than plan it.' },
-      { id:'o4', dim:'O', text:'I lose track of time in a gallery or a bookshop.' },
-      { id:'c1', dim:'C', text:'I finish the things I start.' },
-      { id:'c2', dim:'C', text:'People rely on me to be on time.' },
-      { id:'c3', dim:'C', text:'I keep a list somewhere, always.' },
-      { id:'c4', dim:'C', text:'I leave packing for the last hour.', rev:true },
-      { id:'e1', dim:'E', text:'I start conversations with strangers.' },
-      { id:'e2', dim:'E', text:'A party leaves me more energised than tired.' },
-      { id:'e3', dim:'E', text:'I would rather text than call.', rev:true },
-      { id:'e4', dim:'E', text:'I think out loud, mostly.' },
-      { id:'a1', dim:'A', text:'I would rather adjust than win the argument.' },
-      { id:'a2', dim:'A', text:'I notice who has been left out of the group.' },
-      { id:'a3', dim:'A', text:'I say the hard thing even when it costs me.', rev:true },
-      { id:'a4', dim:'A', text:'I forgive quickly.' },
-      { id:'n1', dim:'N', text:'I replay awkward moments for days.', rev:true },
-      { id:'n2', dim:'N', text:'A small setback can derail my whole day.', rev:true },
-      { id:'n3', dim:'N', text:'I stay calm when plans collapse.' },
-      { id:'n4', dim:'N', text:'I worry about things before they happen.', rev:true }
-    ]
-  },
-  type: {
-    title: 'Type indicator', blurb: 'Eight either-ors on the four Jungian axes. Not MBTI — that is trademarked.',
-    kind: 'choice', weight: 8,
-    items: [
-      { id:'t1', axis:'EI', text:'At a party you…', options:[{label:'Work the room',v:1},{label:'Find one person and stay',v:0}] },
-      { id:'t2', axis:'EI', text:'You think…', options:[{label:'Out loud, with company',v:1},{label:'In your head, first',v:0}] },
-      { id:'t3', axis:'SN', text:'You trust…', options:[{label:'What you can verify',v:0},{label:'The pattern you sense',v:1}] },
-      { id:'t4', axis:'SN', text:'Instructions, ideally…', options:[{label:'Step by step',v:0},{label:'The big picture',v:1}] },
-      { id:'t5', axis:'TF', text:'Decisions start with…', options:[{label:'What is logical',v:1},{label:'Who it affects',v:0}] },
-      { id:'t6', axis:'TF', text:'Feedback should be…', options:[{label:'Direct',v:1},{label:'Gentle',v:0}] },
-      { id:'t7', axis:'JP', text:'Trips should be…', options:[{label:'Planned',v:1},{label:'Improvised',v:0}] },
-      { id:'t8', axis:'JP', text:'Deadlines get met…', options:[{label:'Early',v:1},{label:'In the last hour',v:0}] }
+      { id:'o1', dim:'O', text:"I have a vivid imagination." },
+      { id:'o2', dim:'O', text:"I enjoy thinking about abstract ideas." },
+      { id:'o3', dim:'O', text:"I look for the strange option on a menu." },
+      { id:'o4', dim:'O', text:"I get bored of my own routines." },
+      { id:'o5', dim:'O', text:"I would rather improvise a trip than plan it." },
+      { id:'o6', dim:'O', text:"Art and music move me more than most people." },
+      { id:'o7', dim:'O', text:"I ask questions nobody asked for." },
+      { id:'o8', dim:'O', text:"I dislike change.", rev:true },
+      { id:'c1', dim:'C', text:"I finish the things I start." },
+      { id:'c2', dim:'C', text:"People rely on me to be on time." },
+      { id:'c3', dim:'C', text:"I keep a list, somewhere." },
+      { id:'c4', dim:'C', text:"I leave packing for the last hour.", rev:true },
+      { id:'c5', dim:'C', text:"I do the difficult thing first." },
+      { id:'c6', dim:'C', text:"My space is organised enough that I can find things." },
+      { id:'c7', dim:'C', text:"I keep going until the job is actually done." },
+      { id:'c8', dim:'C', text:"I put things off until they become urgent.", rev:true },
+      { id:'e1', dim:'E', text:"I start conversations with strangers." },
+      { id:'e2', dim:'E', text:"A party leaves me more energised than tired." },
+      { id:'e3', dim:'E', text:"I would rather text than call.", rev:true },
+      { id:'e4', dim:'E', text:"I think out loud, mostly." },
+      { id:'e5', dim:'E', text:"I am usually the quiet one in a group.", rev:true },
+      { id:'e6', dim:'E', text:"I like being the centre of attention." },
+      { id:'e7', dim:'E', text:"I make friends quickly." },
+      { id:'e8', dim:'E', text:"I need time alone to recharge.", rev:true },
+      { id:'a1', dim:'A', text:"I would rather adjust than win the argument." },
+      { id:'a2', dim:'A', text:"I notice who has been left out." },
+      { id:'a3', dim:'A', text:"I say the hard thing even when it costs me.", rev:true },
+      { id:'a4', dim:'A', text:"I forgive quickly." },
+      { id:'a5', dim:'A', text:"I am suspicious of people who are very friendly.", rev:true },
+      { id:'a6', dim:'A', text:"I take an interest in other people's problems." },
+      { id:'a7', dim:'A', text:"I make people feel at ease." },
+      { id:'a8', dim:'A', text:"I can be blunt when I am tired.", rev:true },
+      { id:'n1', dim:'N', text:"I replay awkward moments for days.", rev:true },
+      { id:'n2', dim:'N', text:"A small setback can derail my whole day.", rev:true },
+      { id:'n3', dim:'N', text:"I stay calm when plans collapse." },
+      { id:'n4', dim:'N', text:"I worry about things before they happen.", rev:true },
+      { id:'n5', dim:'N', text:"I rarely feel low." },
+      { id:'n6', dim:'N', text:"I get irritated more easily than most.", rev:true },
+      { id:'n7', dim:'N', text:"Under pressure I stay steady." },
+      { id:'n8', dim:'N', text:"I feel anxious without a clear reason.", rev:true }
     ]
   },
   attach: {
-    title: 'Attachment style', blurb: 'Twelve statements about closeness. The single best predictor of how a relationship goes.',
-    kind: 'scale', weight: 22,
+    title: 'Attachment', blurb: 'Eighteen statements from the adult attachment literature. The best single predictor of how a relationship goes.',
+    kind: 'scale', weight: 20,
     items: [
-      { id:'an1', dim:'anx', text:'I worry that people I love will leave.' },
-      { id:'an2', dim:'anx', text:'I need more reassurance than I admit.' },
-      { id:'an3', dim:'anx', text:'Silence from someone I care about makes me panic.' },
-      { id:'an4', dim:'anx', text:'I am comfortable on my own.', rev:true },
-      { id:'an5', dim:'anx', text:'I check whether they have read the message.' },
-      { id:'an6', dim:'anx', text:'I notice small changes in how someone talks to me.' },
-      { id:'av1', dim:'avo', text:'I would rather solve it alone than ask for help.' },
-      { id:'av2', dim:'avo', text:'Getting too close makes me want space.' },
-      { id:'av3', dim:'avo', text:'I keep parts of myself back.' },
-      { id:'av4', dim:'avo', text:'Talking about feelings is easy for me.', rev:true },
-      { id:'av5', dim:'avo', text:'I pull away when someone starts depending on me.' },
-      { id:'av6', dim:'avo', text:'I would rather not need anyone.', rev:true }
+      { id:'an1', dim:'anx', text:"I worry that people I love will leave." },
+      { id:'an2', dim:'anx', text:"I need more reassurance than I admit." },
+      { id:'an3', dim:'anx', text:"Silence from someone I care about makes me panic." },
+      { id:'an4', dim:'anx', text:"I am comfortable on my own.", rev:true },
+      { id:'an5', dim:'anx', text:"I check whether they have read the message." },
+      { id:'an6', dim:'anx', text:"I notice small changes in how someone talks to me." },
+      { id:'an7', dim:'anx', text:"I am afraid of being too much for someone." },
+      { id:'an8', dim:'anx', text:"When someone pulls away I hold on tighter." },
+      { id:'an9', dim:'anx', text:"I rarely worry about being left.", rev:true },
+      { id:'av1', dim:'avo', text:"I would rather solve it alone than ask for help." },
+      { id:'av2', dim:'avo', text:"Getting too close makes me want space." },
+      { id:'av3', dim:'avo', text:"I keep parts of myself back." },
+      { id:'av4', dim:'avo', text:"Talking about feelings is easy for me.", rev:true },
+      { id:'av5', dim:'avo', text:"I pull away when someone starts depending on me." },
+      { id:'av6', dim:'avo', text:"I would rather not need anyone." },
+      { id:'av7', dim:'avo', text:"I find it hard to let people in." },
+      { id:'av8', dim:'avo', text:"I trust people with personal things.", rev:true },
+      { id:'av9', dim:'avo', text:"Independence matters to me more than closeness." }
+    ]
+  },
+  values: {
+    title: 'Values', blurb: 'Twenty statements from Schwartz\'s basic values. Two people whose values point the same way tend to last.',
+    kind: 'scale', weight: 20,
+    items: [
+      { id:'v1', dim:'sd', text:"Thinking up new ideas matters to me." },
+      { id:'v2', dim:'sd', text:"It is important to me to make my own decisions." },
+      { id:'v3', dim:'st', text:"I look for adventure and new experiences." },
+      { id:'v4', dim:'st', text:"I like surprises and taking risks." },
+      { id:'v5', dim:'he', text:"Enjoying life's pleasures matters to me." },
+      { id:'v6', dim:'he', text:"I take every chance I get to have a good time." },
+      { id:'v7', dim:'ac', text:"Being ambitious matters to me." },
+      { id:'v8', dim:'ac', text:"I want to be recognised for what I achieve." },
+      { id:'v9', dim:'po', text:"Having authority over others matters to me." },
+      { id:'v10', dim:'po', text:"I want people to do as I say." },
+      { id:'v11', dim:'se', text:"Safety and stability matter more than novelty." },
+      { id:'v12', dim:'se', text:"I need my life to be orderly and predictable." },
+      { id:'v13', dim:'co', text:"I keep my impulses in check." },
+      { id:'v14', dim:'co', text:"I follow rules even when nobody is watching." },
+      { id:'v15', dim:'tr', text:"Tradition is worth keeping." },
+      { id:'v16', dim:'tr', text:"I respect the customs I grew up with." },
+      { id:'v17', dim:'be', text:"Helping the people close to me matters most." },
+      { id:'v18', dim:'be', text:"I am loyal to my people above everything." },
+      { id:'v19', dim:'un', text:"I care about people I will never meet." },
+      { id:'v20', dim:'un', text:"Fairness matters more than loyalty." }
+    ]
+  },
+  empathy: {
+    title: 'Empathy', blurb: 'Twelve statements on perspective-taking and concern. It decides whether a conversation feels warm or cold.',
+    kind: 'scale', weight: 12,
+    items: [
+      { id:'em1', dim:'pt', text:"Before criticising someone I try to imagine how they see it." },
+      { id:'em2', dim:'pt', text:"I try to look at everybody's side of a disagreement." },
+      { id:'em3', dim:'pt', text:"I find it hard to see things from another person's point of view.", rev:true },
+      { id:'em4', dim:'pt', text:"When I am upset with someone I try to think what it is like to be them." },
+      { id:'em5', dim:'pt', text:"I sometimes find it difficult to imagine another person's perspective.", rev:true },
+      { id:'em6', dim:'pt', text:"I can usually work out what someone is feeling from how they talk." },
+      { id:'em7', dim:'ec', text:"I often feel protective towards people who are struggling." },
+      { id:'em8', dim:'ec', text:"Other people's misfortunes do not disturb me much.", rev:true },
+      { id:'em9', dim:'ec', text:"I am often moved by things I see happen to others." },
+      { id:'em10', dim:'ec', text:"I describe myself as a soft-hearted person." },
+      { id:'em11', dim:'ec', text:"When someone is unhappy I want to fix it immediately." },
+      { id:'em12', dim:'ec', text:"I stay detached when people tell me their problems.", rev:true }
     ]
   },
   enneagram: {
-    title: 'Enneagram', blurb: 'Eighteen statements, two for each of the nine types. Rate how much each one is you.',
-    kind: 'scale', weight: 15,
+    title: 'Enneagram', blurb: 'Eighteen statements, two per type. Popular rather than clinical — we treat it as flavour, not diagnosis.',
+    kind: 'scale', weight: 6,
     items: [
-      { id:'e1a', dim:'1', text:'I notice what is wrong with things before what is right.' },
-      { id:'e1b', dim:'1', text:'I hold myself to a standard I would not ask of anyone else.' },
-      { id:'e2a', dim:'2', text:'I can tell what people need before they say it.' },
-      { id:'e2b', dim:'2', text:'I feel responsible for other people being okay.' },
-      { id:'e3a', dim:'3', text:'I want to be seen doing well.' },
-      { id:'e3b', dim:'3', text:'I measure myself by what I have achieved.' },
-      { id:'e4a', dim:'4', text:'I feel things differently from most people.' },
-      { id:'e4b', dim:'4', text:'I would rather be unusual than comfortable.' },
-      { id:'e5a', dim:'5', text:'I need long stretches alone to think.' },
-      { id:'e5b', dim:'5', text:'I would rather understand a thing than join in.' },
-      { id:'e6a', dim:'6', text:'I am usually the one asking what could go wrong.' },
-      { id:'e6b', dim:'6', text:'I trust people slowly and then completely.' },
-      { id:'e7a', dim:'7', text:'I say yes to plans before checking my calendar.' },
-      { id:'e7b', dim:'7', text:'I would rather keep my options open than commit.' },
-      { id:'e8a', dim:'8', text:'I would rather be in charge than be surprised.' },
-      { id:'e8b', dim:'8', text:'I say the thing everyone is avoiding.' },
-      { id:'e9a', dim:'9', text:'I would rather keep the peace than be right.' },
-      { id:'e9b', dim:'9', text:'I lose track of what I want when others want something.' }
+      { id:'e1a', dim:'1', text:"I notice what is wrong with things before what is right." },
+      { id:'e1b', dim:'1', text:"I hold myself to a standard I would not ask of anyone else." },
+      { id:'e2a', dim:'2', text:"I can tell what people need before they say it." },
+      { id:'e2b', dim:'2', text:"I feel responsible for other people being okay." },
+      { id:'e3a', dim:'3', text:"I want to be seen doing well." },
+      { id:'e3b', dim:'3', text:"I measure myself by what I have achieved." },
+      { id:'e4a', dim:'4', text:"I feel things differently from most people." },
+      { id:'e4b', dim:'4', text:"I would rather be unusual than comfortable." },
+      { id:'e5a', dim:'5', text:"I need long stretches alone to think." },
+      { id:'e5b', dim:'5', text:"I would rather understand a thing than join in." },
+      { id:'e6a', dim:'6', text:"I am usually the one asking what could go wrong." },
+      { id:'e6b', dim:'6', text:"I trust people slowly and then completely." },
+      { id:'e7a', dim:'7', text:"I say yes to plans before checking my calendar." },
+      { id:'e7b', dim:'7', text:"I would rather keep my options open than commit." },
+      { id:'e8a', dim:'8', text:"I would rather be in charge than be surprised." },
+      { id:'e8b', dim:'8', text:"I say the thing everyone is avoiding." },
+      { id:'e9a', dim:'9', text:"I would rather keep the peace than be right." },
+      { id:'e9b', dim:'9', text:"I lose track of what I want when others want something." }
     ]
   },
   conflict: {
-    title: 'Conflict style', blurb: 'Eight situations. What you actually do when it goes wrong.',
-    kind: 'choice', weight: 10,
+    title: 'Conflict style', blurb: 'Eight situations, modelled on the Thomas–Kilmann framework. What you actually do when it goes wrong.',
+    kind: 'choice', weight: 6,
     items: [
-      { id:'k1', text:'In a fight you…', options:[{label:'Push to win',v:'Competing'},{label:'Find the middle',v:'Compromising'},{label:'Go quiet',v:'Avoiding'},{label:'Give in',v:'Accommodating'},{label:'Fix the actual problem',v:'Collaborating'}] },
-      { id:'k2', text:'Someone is wrong and angry. You…', options:[{label:'Correct them',v:'Competing'},{label:'Split it',v:'Compromising'},{label:'Leave the room',v:'Avoiding'},{label:'Absorb it',v:'Accommodating'},{label:'Ask what they need',v:'Collaborating'}] },
-      { id:'k3', text:'Unspoken tension is…', options:[{label:'Something to settle now',v:'Competing'},{label:'Something to manage',v:'Compromising'},{label:'Better left alone',v:'Avoiding'},{label:'Your fault somehow',v:'Accommodating'},{label:'Worth naming',v:'Collaborating'}] },
-      { id:'k4', text:'You apologise…', options:[{label:'Rarely, when right',v:'Competing'},{label:'To end it',v:'Compromising'},{label:'By disappearing',v:'Avoiding'},{label:'Immediately',v:'Accommodating'},{label:'With what you understood',v:'Collaborating'}] },
-      { id:'k5', text:'Best outcome of a fight?', options:[{label:'You were right',v:'Competing'},{label:'Both gave something',v:'Compromising'},{label:'It blew over',v:'Avoiding'},{label:'They are okay',v:'Accommodating'},{label:'Something changed',v:'Collaborating'}] },
-      { id:'k6', text:'Long silence after a fight means…', options:[{label:'They should come to you',v:'Competing'},{label:'Cooling off',v:'Compromising'},{label:'Relief',v:'Avoiding'},{label:'You should fix it',v:'Accommodating'},{label:'Time to talk properly',v:'Collaborating'}] },
-      { id:'k7', text:'You are blamed for something unfair.', options:[{label:'Defend yourself fully',v:'Competing'},{label:'Negotiate',v:'Compromising'},{label:'Say nothing',v:'Avoiding'},{label:'Apologise anyway',v:'Accommodating'},{label:'Get to the facts together',v:'Collaborating'}] },
-      { id:'k8', text:'After a bad argument you want…', options:[{label:'The last word',v:'Competing'},{label:'A deal',v:'Compromising'},{label:'Distance',v:'Avoiding'},{label:'Peace, at any cost',v:'Accommodating'},{label:'Repair',v:'Collaborating'}] }
+      { id:'k1', text:"In a fight you\u2026", options:[{label:'Push to win',v:'Competing'},{label:'Find the middle',v:'Compromising'},{label:'Go quiet',v:'Avoiding'},{label:'Give in',v:'Accommodating'},{label:'Fix the actual problem',v:'Collaborating'}] },
+      { id:'k2', text:"Someone is wrong and angry. You\u2026", options:[{label:'Correct them',v:'Competing'},{label:'Split it',v:'Compromising'},{label:'Leave the room',v:'Avoiding'},{label:'Absorb it',v:'Accommodating'},{label:'Ask what they need',v:'Collaborating'}] },
+      { id:'k3', text:"Unspoken tension is\u2026", options:[{label:'Something to settle now',v:'Competing'},{label:'Something to manage',v:'Compromising'},{label:'Better left alone',v:'Avoiding'},{label:'Your fault somehow',v:'Accommodating'},{label:'Worth naming',v:'Collaborating'}] },
+      { id:'k4', text:"You apologise\u2026", options:[{label:'Rarely, when right',v:'Competing'},{label:'To end it',v:'Compromising'},{label:'By disappearing',v:'Avoiding'},{label:'Immediately',v:'Accommodating'},{label:'With what you understood',v:'Collaborating'}] },
+      { id:'k5', text:"Best outcome of a fight?", options:[{label:'You were right',v:'Competing'},{label:'Both gave something',v:'Compromising'},{label:'It blew over',v:'Avoiding'},{label:'They are okay',v:'Accommodating'},{label:'Something changed',v:'Collaborating'}] },
+      { id:'k6', text:"Long silence after a fight means\u2026", options:[{label:'They should come to you',v:'Competing'},{label:'Cooling off',v:'Compromising'},{label:'Relief',v:'Avoiding'},{label:'You should fix it',v:'Accommodating'},{label:'Time to talk properly',v:'Collaborating'}] },
+      { id:'k7', text:"You are blamed for something unfair.", options:[{label:'Defend yourself fully',v:'Competing'},{label:'Negotiate',v:'Compromising'},{label:'Say nothing',v:'Avoiding'},{label:'Apologise anyway',v:'Accommodating'},{label:'Get to the facts together',v:'Collaborating'}] },
+      { id:'k8', text:"After a bad argument you want\u2026", options:[{label:'The last word',v:'Competing'},{label:'A deal',v:'Compromising'},{label:'Distance',v:'Avoiding'},{label:'Peace, at any cost',v:'Accommodating'},{label:'Repair',v:'Collaborating'}] }
+    ]
+  },
+  type: {
+    title: 'Type indicator', blurb: 'Eight either-ors on the four Jungian axes. Not MBTI — that is trademarked — but the same underlying idea.',
+    kind: 'choice', weight: 4,
+    items: [
+      { id:'t1', axis:'EI', text:"At a party you\u2026", options:[{label:'Work the room',v:1},{label:'Find one person and stay',v:0}] },
+      { id:'t2', axis:'EI', text:"You think\u2026", options:[{label:'Out loud, with company',v:1},{label:'In your head, first',v:0}] },
+      { id:'t3', axis:'SN', text:"You trust\u2026", options:[{label:'What you can verify',v:0},{label:'The pattern you sense',v:1}] },
+      { id:'t4', axis:'SN', text:"Instructions, ideally\u2026", options:[{label:'Step by step',v:0},{label:'The big picture',v:1}] },
+      { id:'t5', axis:'TF', text:"Decisions start with\u2026", options:[{label:'What is logical',v:1},{label:'Who it affects',v:0}] },
+      { id:'t6', axis:'TF', text:"Feedback should be\u2026", options:[{label:'Direct',v:1},{label:'Gentle',v:0}] },
+      { id:'t7', axis:'JP', text:"Trips should be\u2026", options:[{label:'Planned',v:1},{label:'Improvised',v:0}] },
+      { id:'t8', axis:'JP', text:"Deadlines get met\u2026", either:true, options:[{label:'Early',v:1},{label:'In the last hour',v:0}] }
     ]
   }
 };
-const TEST_ORDER = ['big5', 'attach', 'enneagram', 'conflict', 'type'];
+const TEST_ORDER = ['big5', 'attach', 'values', 'empathy', 'enneagram', 'conflict', 'type'];
 
 const publicTests = () => TEST_ORDER.map(id => {
   const t = TESTS[id];
@@ -677,7 +747,7 @@ function scoreTest(id, answers) {
   const t = TESTS[id];
   if (!t) throw new Error('unknown test');
 
-  if (id === 'big5' || id === 'attach' || id === 'enneagram') {
+  if (id === 'big5' || id === 'attach' || id === 'enneagram' || id === 'values' || id === 'empathy') {
     const acc = {};
     for (const it of t.items) {
       let v = Number(answers[it.id]);
@@ -691,11 +761,42 @@ function scoreTest(id, answers) {
       const { anx, avo } = dims;
       return { dims, summary: { style: anx >= .55 && avo >= .55 ? 'fearful' : anx >= .55 ? 'anxious' : avo >= .55 ? 'avoidant' : 'secure' } };
     }
+    if (id === 'values') {
+      const top = Object.entries(dims).sort((a, b) => b[1] - a[1]).slice(0, 2).map(x => x[0]);
+      return { dims, summary: { top } };
+    }
+    if (id === 'empathy') {
+      const avg = (dims.pt + dims.ec) / 2;
+      return { dims, summary: { level: avg >= .68 ? 'high' : avg >= .4 ? 'steady' : 'guarded' } };
+    }
     if (id === 'enneagram') {
       const best = Object.entries(dims).sort((a, b) => b[1] - a[1])[0];
       return { dims, summary: { ennea: Number(best[0]), scores: dims } };
     }
     return { dims, summary: {} };
+  }
+
+  if (id === 'love' || id === 'intent') {
+    const it = t.items[0];
+    const a = Number(answers[it.id]);
+    if (!(a >= 0)) throw new Error('missing: ' + it.id);
+    const v = it.options[a].v;
+    return { dims: {}, summary: id === 'love' ? { love: v } : { intent: v } };
+  }
+
+  if (id === 'chatstyle') {
+    const ax = { pace: [], length: [] };
+    for (const it of t.items) {
+      const a = Number(answers[it.id]);
+      if (!(a >= 0)) throw new Error('missing: ' + it.id);
+      ax[it.axis].push(it.options[a].v);
+    }
+    const mean = k => ax[k].reduce((a, b) => a + b, 0) / ax[k].length;
+    const pace = mean('pace'), length = mean('length');
+    return { dims: { pace, length }, summary: {
+      pace: pace >= 0.5 ? 'fast' : 'slow',
+      length: length >= 0.5 ? 'long' : 'short'
+    } };
   }
 
   if (id === 'type') {
@@ -893,7 +994,18 @@ function pairParams(A, B) {           // A, B = user records
     const wing = (a, b) => Math.abs(a - b) === 1 || Math.abs(a - b) === 8;
     add('Enneagram', 'Personality', x === y ? 0.9 : wing(x, y) ? 0.8 : [1,4,7].includes(x) === [1,4,7].includes(y) ? 0.6 : 0.45, 5);
   }
-  if (ra.love && rb.love) add('Love language', 'Personality', ra.love.summary.love === rb.love.summary.love ? 1 : 0.55);
+  if (ra.values && rb.values) {
+    const va = ra.values.dims, vb = rb.values.dims;
+    const keys = Object.keys(va).filter(k => k in vb);
+    if (keys.length) {
+      const dist = keys.reduce((acc, k) => acc + Math.abs(va[k] - vb[k]), 0) / keys.length;
+      add('Values', 'Personality', 1 - dist, 20);
+    }
+  }
+  if (ra.empathy && rb.empathy) {
+    const ea = ra.empathy.dims, eb = rb.empathy.dims;
+    add('Empathy', 'Personality', 1 - (Math.abs(ea.pt - eb.pt) + Math.abs(ea.ec - eb.ec)) / 2, 12);
+  }
   if (ra.disc && rb.disc) add('Social style', 'Personality', ra.disc.summary.disc === rb.disc.summary.disc ? 0.85 : 0.6);
   if (ra.humour && rb.humour) add('Humour', 'Personality', ra.humour.summary.humour === rb.humour.summary.humour ? 0.9 : 0.5);
   if (ra.conflict && rb.conflict) {
@@ -1019,9 +1131,12 @@ function chatView(c, me) {
 /* ================================================================== *
  * http
  * ================================================================== */
-const send = (res, code, body) => {
+const send = (res, code, body, headers = {}) => {
   const data = typeof body === 'string' ? body : JSON.stringify(body);
-  res.writeHead(code, { 'Content-Type': typeof body === 'string' ? 'text/html; charset=utf-8' : 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+  res.writeHead(code, Object.assign({
+    'Content-Type': typeof body === 'string' ? 'text/html; charset=utf-8' : 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store'
+  }, headers));
   res.end(data);
 };
 const bad = (res, code, msg) => send(res, code, { error: msg });
@@ -1055,6 +1170,24 @@ function createServer() {
     const url = new URL(req.url, 'http://x');
     const p = url.pathname, method = req.method;
     try {
+      if (method === 'GET' && ['/icon-192.png','/icon-512.png','/apple-touch-icon.png','/favicon.png'].includes(p)) {
+        const file = p === '/favicon.png' ? 'icon-192.png' : p.slice(1);
+        try {
+          const buf = fs.readFileSync(path.join(__dirname, file));
+          res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=604800' });
+          return res.end(buf);
+        } catch { return bad(res, 404, 'no icon'); }
+      }
+      if (method === 'GET' && p === '/manifest.webmanifest') {
+        return send(res, 200, JSON.stringify({
+          name: 'Milao', short_name: 'Milao', start_url: '/', display: 'standalone',
+          background_color: '#FBF2EF', theme_color: '#FBF2EF',
+          icons: [
+            { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+            { src: '/icon-512.png', sizes: '512x512', type: 'image/png' }
+          ]
+        }), { 'Content-Type': 'application/manifest+json' });
+      }
       if (method === 'GET' && p === '/geo.json') {
         return send(res, 200, fs.readFileSync(path.join(__dirname, 'geo.json'), 'utf8'),
           { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=86400' });

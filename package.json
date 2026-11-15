@@ -1,6 +1,6 @@
 {
   "name": "milao",
-  "version": "15.0.0",
+  "version": "17.0.0",
   "description": "Stranger chat filtered by a computed character.",
   "main": "server.js",
   "scripts": {

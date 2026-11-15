@@ -3,7 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#f5f2ec">
+<meta name="theme-color" content="#FBF2EF">
+<link rel="icon" href="/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Milao">
 <title>Milao</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -143,6 +148,13 @@ a:visited{color:var(--teal)}
 .tr{display:grid;grid-template-columns:96px 1fr 26px;gap:8px;align-items:center;font-size:11.5px;margin-bottom:6px}
 .tr span:first-child{font-family:var(--mono);font-size:9px;text-transform:uppercase;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tr span:last-child{text-align:right;font-family:var(--mono);font-size:10px;color:var(--faint)}
+.kvd{border-bottom:1px solid var(--line-soft);padding:9px 0}
+.kvd summary{display:flex;justify-content:space-between;gap:12px;cursor:pointer;list-style:none;align-items:baseline}
+.kvd summary::-webkit-details-marker{display:none}
+.kvd summary b{font-weight:600;display:flex;align-items:center;gap:6px;text-align:right}
+.kvd summary i{font-style:normal;color:var(--faint);font-size:11px;transition:transform .15s}
+.kvd[open] summary i{transform:rotate(180deg)}
+.kvd p{margin:7px 0 0;line-height:1.55;color:var(--dim)}
 .kv{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:5px 0}
 .kv b{font-family:var(--mono);font-weight:500;font-size:12.5px}
 .tiny{font-size:11px;color:var(--faint);line-height:1.5}
@@ -300,15 +312,16 @@ function viewHome() {
   const st = S.state;
   if (!st) return `<p class="lbl" style="text-align:center;padding:40px 0">loading</p>`;
   const done = Object.keys(S.me.results || {}).length;
+  const total = S.tests ? S.tests.length : 5;
   return `
-    ${done < 9 ? `<div class="card" style="background:var(--teal-soft);border-color:transparent">
-      <div class="hd"><h3 style="color:var(--teal)">Your character is ${Math.round(done / (S.tests ? S.tests.length : 5) * 100)}% built</h3><span class="lbl" style="color:var(--teal)">${done}/${S.tests ? S.tests.length : 5}</span></div>
+    ${done < total ? `<div class="card" style="background:var(--teal-soft);border-color:transparent">
+      <div class="hd"><h3 style="color:var(--teal)">Your character is ${Math.round(done / total * 100)}% built</h3><span class="lbl" style="color:var(--teal)">${done}/${total}</span></div>
       <p class="small" style="margin-bottom:10px">Every test you finish sharpens the match score and lifts your tier. Finish them to unlock more slots.</p>
       <button class="p w" data-act="tab" data-tab="tests">Continue</button>
     </div>` : ''}
     <div class="hd" style="margin:2px 0 10px"><h2>Your slots</h2><span class="lbl">${st.queueSize} waiting now</span></div>
     <div class="slots">${st.slots.map(slotCard).join('')}</div>
-    <p class="tiny">Tap a free slot to join the queue — each slot keeps its own place in line. You are matched with whoever has been waiting longest who wants someone like you. Minimise a chat with ⌄ and it keeps running while you use your other slots.</p>`;
+    <p class="tiny">Tap an empty slot to join the queue — each slot keeps its own place in line. You are matched with whoever has been waiting longest who wants someone like you. Minimise a chat with ⌄ and it keeps running while you use your other slots.</p>`;
 }
 
 function slotCard(s) {
@@ -339,7 +352,7 @@ function slotCard(s) {
   return `<button class="slot empty" data-act="queue" data-slot="${s.index}">
     <div class="idx">slot ${s.index + 1}</div>
     <div class="big" style="color:var(--teal)">Find my match</div>
-    <div class="sub">free</div>
+    <div class="sub">tap to start</div>
   </button>`;
 }
 
@@ -352,7 +365,7 @@ function viewChat() {
       <button class="ghost" data-act="closechat" style="padding:6px 11px;font-size:17px" title="Minimise — the chat keeps running">⌄</button>
       ${c.peer?.avatar ? avatarchip(c.peer.avatar, 34) : ''}
       <div style="min-width:0;flex:1">
-        <div style="font-weight:600;font-size:15px;line-height:1.2">${esc(c.peer?.name || '')}</div>
+        <div style="font-weight:600;font-size:15px;line-height:1.2">${esc(c.peer?.name || '')}${c.peerTyping ? ' <span class="typing">typing…</span>' : ''}</div>
         <div class="sub" style="font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.peer?.status || '')}</div>
       </div>
       <span class="scorepill s-${band}">${c.score}</span>
@@ -505,14 +518,16 @@ function viewProfile() {
   </div>
 
   <div class="card">
-    <div class="hd"><h3>Personality</h3><span class="lbl">${Object.keys(r).length}/5 tests</span></div>
+    <div class="hd"><h3>Personality</h3><span class="lbl">${Object.keys(r).length}/${S.tests ? S.tests.length : 5} tests</span></div>
     ${Object.keys(b5).length ? ['O','C','E','A','N'].map(k => `<div class="tr"><span>${lbl[k]}</span><span class="bar"><i style="width:${Math.round(b5[k]*100)}%"></i></span><span>${Math.round(b5[k]*100)}</span></div>`).join('') : '<p class="small dim">No personality data yet.</p>'}
     <hr class="sep">
-    <div class="kv"><span class="dim">Type</span><b>${r.type?.summary?.type || '—'}</b></div>
-    <div class="kv"><span class="dim">Attachment</span><b>${r.attach?.summary?.style || '—'}</b></div>
-    <div class="kv"><span class="dim">Enneagram</span><b>${r.enneagram?.summary?.ennea || '—'}</b></div>
+    ${kvExplain('Type', r.type?.summary?.type, DESCRIBE.type[r.type?.summary?.type])}
+    ${kvExplain('Attachment', r.attach?.summary?.style, DESCRIBE.attach[r.attach?.summary?.style])}
+    ${kvExplain('Enneagram', r.enneagram?.summary?.ennea, DESCRIBE.ennea[r.enneagram?.summary?.ennea])}
 
-    <div class="kv"><span class="dim">Conflict</span><b>${r.conflict?.summary?.conflict || '—'}</b></div>
+    ${kvExplain('Conflict', r.conflict?.summary?.conflict, DESCRIBE.conflict[r.conflict?.summary?.conflict])}
+    ${kvExplain('Values', r.values ? r.values.summary.top.map(v => DESCRIBE.valueName[v]).join(', ') : null, 'What you rate highest of the ten basic values. We compare the whole profile, not just the top two — two people who value the same things argue less about how to live.')}
+    ${kvExplain('Empathy', r.empathy?.summary?.level, DESCRIBE.empathy[r.empathy?.summary?.level])}
 
   </div>`;
 }
@@ -704,6 +719,75 @@ document.addEventListener('click', async (e) => {
 });
 
 document.addEventListener('input', e => { if (e.target.id === 'msgbox') S.draft = e.target.value; });
+
+
+/* plain-language meanings, revealed when a row is tapped */
+const DESCRIBE = {
+  type: {
+    INTJ:'Plans quietly, decides alone, tells you the truth even when it costs.',
+    INTP:'Thinks in systems, argues for fun, needs a lot of time inside their own head.',
+    ENTJ:'Takes charge before anyone else does, and expects you to keep up.',
+    ENTP:'Starts ten arguments and finishes none, because the next idea arrived.',
+    INFJ:'Reads the room, then reads you, then says the thing nobody else said.',
+    INFP:'Feels deeply, keeps a private world, notices when you are pretending.',
+    ENFJ:'Warms a room in ten seconds and remembers what you said a month later.',
+    ENFP:'All enthusiasm and no calendar. Will drag you into something good.',
+    ISTJ:'Reliable to the minute. Says what they mean, does what they said.',
+    ISFJ:'Quietly takes care of everyone and never mentions it.',
+    ESTJ:'Runs the thing. Expects structure, gives structure.',
+    ESFJ:'Hosts, remembers birthdays, keeps the group together.',
+    ISTP:'Calm hands, few words, fixes what is broken without a speech.',
+    ISFP:'Gentle, aesthetic, allergic to being told what to do.',
+    ESTP:'Acts first, thinks in motion, good in a crisis.',
+    ESFP:'Fun in the room, present tense only, makes ordinary days feel like something.'
+  },
+  attach: {
+    secure:'Comfortable with closeness and with space. The easiest kind of person to be with.',
+    anxious:'Wants more reassurance than they ask for, and reads small changes as signs.',
+    avoidant:'Keeps a part of themselves back. Closeness arrives and they step away.',
+    fearful:'Wants it and fears it at once. Pulls close, then retreats.'
+  },
+  ennea: {
+    1:'Wants things done right, and is hardest on themselves.',
+    2:'Reads what people need and gives it before being asked.',
+    3:'Measures themselves by what they achieve and how it looks.',
+    4:'Wants to be seen as singular, and feels things at a different volume.',
+    5:'Needs solitude to think, and would rather understand than participate.',
+    6:'Asks what could go wrong, and trusts slowly, then completely.',
+    7:'Says yes first, and keeps their options open.',
+    8:'Takes charge so nothing can surprise them.',
+    9:'Keeps the peace, and can lose track of what they wanted.'
+  },
+  conflict: {
+    Competing:'Meets conflict head-on and wants to win it.',
+    Collaborating:'Tries to fix the actual problem rather than the feelings around it.',
+    Compromising:'Splits the difference and moves on.',
+    Avoiding:'Leaves the room. Not cowardice — it is how they keep steady.',
+    Accommodating:'Gives in to keep the peace, then carries the cost quietly.'
+  },
+  love: {
+    words:'Affection lands through what is said.',
+    time:'Affection lands through undivided attention.',
+    touch:'Affection lands through closeness.',
+    acts:'Affection lands through being helped without asking.',
+    gifts:'Affection lands through being thought of.'
+  },
+  empathy: {
+    high:'Reads a room quickly and feels what lands on other people. Warm, sometimes to a fault.',
+    steady:'Notices how others feel without being run by it.',
+    guarded:'Keeps a step back emotionally. Not cold — careful.'
+  },
+  valueName: {
+    sd:'self-direction', st:'stimulation', he:'pleasure', ac:'achievement', po:'power',
+    se:'security', co:'conformity', tr:'tradition', be:'loyalty', un:'fairness to strangers'
+  }
+};
+
+function kvExplain(label, value, text) {
+  if (value == null || value === '' || value === '—') return `<div class="kv"><span class="dim">${label}</span><b>—</b></div>`;
+  if (!text) return `<div class="kv"><span class="dim">${label}</span><b>${esc(String(value))}</b></div>`;
+  return `<details class="kvd"><summary><span class="dim">${label}</span><b>${esc(String(value))}<i>⌄</i></b></summary><p class="tiny">${esc(text)}</p></details>`;
+}
 
 /* ---------- avatars: layered SVG, no images, no uploads ---------- */
 const AV = {
@@ -932,7 +1016,9 @@ function startChatPoll() {
     if (!S.chat) return stopChatPoll();
     try {
       const r = await api('/api/chats/' + S.chat.id);
-      if (JSON.stringify(r.chat.messages) !== JSON.stringify(S.chat.messages) || r.chat.endedAt !== S.chat.endedAt) {
+      if (JSON.stringify(r.chat.messages) !== JSON.stringify(S.chat.messages) ||
+          r.chat.endedAt !== S.chat.endedAt ||
+          !!r.chat.peerTyping !== !!S.chat.peerTyping) {
         S.chat = r.chat; render(); scrollMsgs();
       }
     } catch {}
