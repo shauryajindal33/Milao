@@ -394,27 +394,27 @@ function viewChat() {
 function viewTests() {
   const done = new Set(Object.keys(S.me.results || {}));
   return `<h1 style="margin-bottom:4px">Character</h1>
-    <p class="dim small" style="margin-bottom:14px">${S.tests ? S.tests.length : 5} tests. Each one feeds the match score and your tier.</p>
-    ${(S.tests || []).map(t => `<button class="card" style="display:flex;gap:12px;align-items:center;width:100%;text-align:left;cursor:pointer" data-act="opentest" data-id="${t.id}">
-      <span style="width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:${done.has(t.id) ? 'var(--teal)' : 'var(--teal-soft)'};color:${done.has(t.id) ? '#fff' : 'var(--teal)'};font-family:var(--mono);font-size:12px;flex:0 0 auto">${done.has(t.id) ? '✓' : t.count}</span>
-      <span style="min-width:0;flex:1"><b style="font-size:14.5px">${esc(t.title)}</b><span class="sub" style="display:block;font-size:11.5px;color:var(--dim);margin-top:2px">${esc(t.blurb)}</span></span>
-      <span class="lbl">${done.has(t.id) ? 'redo' : t.weight + '%'}</span>
+    <p class="dim small" style="margin-bottom:14px">${S.tests ? S.tests.length : 7} ${t('testsblurb2')}</p>
+    ${(S.tests || []).map(tt => `<button class="card" style="display:flex;gap:12px;align-items:center;width:100%;text-align:left;cursor:pointer" data-act="opentest" data-id="${tt.id}">
+      <span style="width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:${done.has(tt.id) ? 'var(--teal)' : 'var(--teal-soft)'};color:${done.has(tt.id) ? '#fff' : 'var(--teal)'};font-family:var(--mono);font-size:12px;flex:0 0 auto">${done.has(tt.id) ? '✓' : t.count}</span>
+      <span style="min-width:0;flex:1"><b style="font-size:14.5px">${esc(tt.title)}</b><span class="sub" style="display:block;font-size:11.5px;color:var(--dim);margin-top:2px">${esc(tt.blurb)}</span></span>
+      <span class="lbl">${done.has(tt.id) ? t('redo') : tt.weight + '%'}</span>
     </button>`).join('')}`;
 }
 function viewRun() {
-  const r = S.run, t = r.test, i = r.i, item = t.items[i];
+  const r = S.run, test = r.test, i = r.i, item = test.items[i];
   const ans = r.answers[item.id] != null;
-  const body = t.kind === 'scale'
+  const body = test.kind === 'scale'
     ? `<div class="scale">${[1,2,3,4,5].map(v => `<button data-act="ans" data-v="${v}" aria-pressed="${r.answers[item.id] === v}">${v}</button>`).join('')}</div>
-       <div class="slegend"><span>${esc(t.scale[0])}</span><span>${esc(t.scale[4])}</span></div>`
+       <div class="slegend"><span>${t('notme')}</span><span>${t('exactly')}</span></div>`
     : item.options.map((o, oi) => `<button class="opt" data-act="ans" data-v="${oi}" aria-pressed="${r.answers[item.id] === oi}">${esc(o)}</button>`).join('');
-  return `<button class="back" data-act="closetest">← ${esc(t.title)}</button>
-    <div class="hd"><span class="lbl">${i + 1} of ${t.items.length}</span><span class="lbl">${t.weight}% of score</span></div>
-    <div class="prog"><i style="width:${Math.round(i / t.items.length * 100)}%"></i></div>
+  return `<button class="back" data-act="closetest">← ${esc(test.title)}</button>
+    <div class="hd"><span class="lbl">${i + 1} ${t('of')} ${test.items.length}</span><span class="lbl">${test.weight}% ${t('ofscore')}</span></div>
+    <div class="prog"><i style="width:${Math.round(i / test.items.length * 100)}%"></i></div>
     <div class="q">${esc(item.text)}</div>${body}
     <div class="row" style="margin-top:14px">
-      <button class="ghost" data-act="prevq" ${i === 0 ? 'disabled' : ''}>Back</button>
-      <button class="p" data-act="nextq" ${ans ? '' : 'disabled'}>${i === t.items.length - 1 ? 'Finish' : 'Next'}</button>
+      <button class="ghost" data-act="prevq" ${i === 0 ? 'disabled' : ''}>${t('back')}</button>
+      <button class="p" data-act="nextq" ${ans ? '' : 'disabled'}>${i === test.items.length - 1 ? t('finish') : t('next')}</button>
     </div>`;
 }
 function viewResult() {
@@ -426,11 +426,11 @@ function viewResult() {
   if (t.id === 'enneagram') bits.push('Enneagram type ' + s.ennea);
   if (t.id === 'conflict') bits.push('Conflict: ' + s.conflict);
   return `<div class="card" style="text-align:center;background:var(--teal-soft);border-color:transparent">
-      <p class="lbl" style="color:var(--teal)">${esc(t.title)} · done</p>
+      <p class="lbl" style="color:var(--teal)">${esc(t.title)} · ${t('done')}</p>
       <h1 style="font-size:34px;margin:8px 0 2px">${esc(bits[0] || 'Added')}</h1>
-      <p class="small" style="color:var(--teal)">tier ${esc(cibil.tier)} · ${cibil.slots} slots</p>
+      <p class="small" style="color:var(--teal)">${t('yourtier')} ${esc(tierName(cibil.tier))} · ${cibil.slots} ${t('slots')}</p>
     </div>
-    <div class="card"><p class="small dim">Your character updated. The next person you are matched with will be scored on it.</p></div>
+    <div class="card"><p class="small dim">${t('updated')}</p></div>
     <button class="p w" data-act="closetest">Back</button>`;
 }
 
@@ -453,7 +453,7 @@ function viewProfile() {
       <span class="lbl">${esc(m.user.city)} · ${m.user.age}</span>
     </div>
     ${langPicker()}
-    <div class="chips"><span class="chip t">${esc(tierName(m.cibil.tier))}</span><span class="chip">${m.cibil.slots} ${t('slots')}</span><span class="chip">${esc(m.user.gender)}</span><span class="chip">sees ${esc(m.user.pref.toLowerCase())}</span></div>
+    <div class="chips"><span class="chip t">${esc(tierName(m.cibil.tier))}</span><span class="chip">${m.cibil.slots} ${t('slots')}</span><span class="chip">${esc(m.user.gender)}</span><span class="chip">${t('sees' + m.user.pref.toLowerCase())}</span></div>
     <hr class="sep">
     <p class="small dim" style="margin-bottom:8px">"${esc(m.status || 'no status yet')}"</p>
     <div class="row">
@@ -469,8 +469,9 @@ function viewProfile() {
 
   <div class="card">
     <div class="hd"><h3>${t('yourtier')}</h3><span class="lbl">${esc(tierName(m.cibil.tier))}</span></div>
+    <details class="kvd" style="border:0;padding:0"><summary><span class="tiny" style="color:var(--faint)">${t('whattier')}</span><b style="font-size:11px">⌄</b></summary><p class="tiny">${esc(ex('tier'))}</p></details>
     <div class="prog"><i style="width:${Math.min(100, Math.round((m.cibil.score - (m.cibil.next ? m.cibil.next.min - 100 : m.cibil.score)) / 100 * 100))}%"></i></div>
-    <p class="tiny" style="margin-top:8px">${m.cibil.next ? `Keep replying and finishing tests to reach ${m.cibil.next.name} (${m.cibil.next.slots} slots).` : 'Top tier. Ten slots.'} We do not show the number — only the tier.</p>
+    <p class="tiny" style="margin-top:8px">${m.cibil.next ? `${t('tierreach')} ${tierName(m.cibil.next.name)} (${m.cibil.next.slots} ${t('slots')}).` : t('toptier')} ${t('tierhide')}</p>
     <div class="kv"><span class="dim">${t('chats')}</span><b>${m.stats.chats || 0}</b></div>
     <div class="kv"><span class="dim">${t('messages')}</span><b>${m.stats.messages || 0}</b></div>
     <div class="kv"><span class="dim">${t('leftearly')}</span><b>${m.stats.skips || 0}</b></div>
@@ -479,24 +480,24 @@ function viewProfile() {
   <div class="card">
     <div class="hd"><h3>${t('astrology')}</h3><span class="lbl">${c.hasTime ? t('withtime') : t('notime')}</span></div>
     <p class="lbl" style="margin:2px 0 6px">${t('western')}</p>
-    <div class="kv"><span class="dim">${t('sun')}</span><b>${esc(tv('sign', c.western.sun))}</b></div>
-    <div class="kv"><span class="dim">${t('moon')}</span><b>${esc(tv('sign', c.western.moon))}</b></div>
+    ${kvRow(t('sun'), (esc(tv('sign', c.western.sun))), 'sun')}
+    ${kvRow(t('moon'), (esc(tv('sign', c.western.moon))), 'moon')}
     <div class="kv"><span class="dim">${t('rising')}</span><b>${esc(tv('sign', c.western.lagna))}</b></div>
     <div class="kv"><span class="dim">${t('venusmars')}</span><b>${esc(tv('sign', c.western.venus))} · ${esc(tv('sign', c.western.mars))}</b></div>
     <hr class="sep">
     <p class="lbl" style="margin:2px 0 6px">${t('vedic')}</p>
     <div class="kv"><span class="dim">${t('birthplace2')}</span><b>${esc(c.place && c.place.name ? c.place.name : 'not recognised')}</b></div>
     <div class="kv"><span class="dim">${t('coordinates')}</span><b>${c.place ? c.place.lat.toFixed(2) + '°N, ' + c.place.lon.toFixed(2) + '°E' : '—'}</b></div>
-    <div class="kv"><span class="dim">${t('lagna')}</span><b>${esc(tv('sign', c.lagna.sign))} · ${t('lord')} ${esc(tv('lord', c.lagna.lord))}</b></div>
-    <div class="kv"><span class="dim">${t('sun')}</span><b>${esc(tv('sign', c.sun.sign))} · ${t('house')} ${c.sun.house}</b></div>
-    <div class="kv"><span class="dim">${t('moon')}</span><b>${esc(tv('sign', c.moon.sign))} · ${t('house')} ${c.moon.house}</b></div>
-    <div class="kv"><span class="dim">${t('nakshatra')}</span><b>${esc(tv('nak', c.moon.nak))} · ${t('pada')} ${c.moon.pada}</b></div>
-    <div class="kv"><span class="dim">${t('naklord')}</span><b>${esc(tv('lord', c.moon.lord))}</b></div>
-    <div class="kv"><span class="dim">${t('venus')}</span><b>${esc(tv('sign', c.venus.sign))} · ${t('house')} ${c.venus.house}</b></div>
-    <div class="kv"><span class="dim">${t('mars')}</span><b>${esc(tv('sign', c.mars.sign))} · ${t('house')} ${c.mars.house}</b></div>
-    <div class="kv"><span class="dim">${t('rahuketu')}</span><b>${esc(tv('sign', c.rahu.sign))} · ${esc(tv('sign', c.ketu.sign))}</b></div>
-    <div class="kv"><span class="dim">${t('manglik')}</span><b>${c.manglik.is ? t('yes') + ' · ' + t('mars') + ' ' + t('house') + ' ' + c.mars.house : t('no')}</b></div>
-    <div class="kv"><span class="dim">${t('element')}</span><b>${esc(tv('element', c.element))} · ${esc(tv('modality', c.modality))}</b></div>
+    ${kvRow(t('lagna'), (esc(tv('sign', c.lagna.sign))) + ' · ' + (t('lord')) + ' ' + (esc(tv('lord', c.lagna.lord))), 'lagna')}
+    ${kvRow(t('sun'), (esc(tv('sign', c.sun.sign))) + ' · ' + (t('house')) + ' ' + (c.sun.house), 'sun')}
+    ${kvRow(t('moon'), (esc(tv('sign', c.moon.sign))) + ' · ' + (t('house')) + ' ' + (c.moon.house), 'moon')}
+    ${kvRow(t('nakshatra'), (esc(tv('nak', c.moon.nak))) + ' · ' + (t('pada')) + ' ' + (c.moon.pada), 'nak')}
+    ${kvRow(t('naklord'), (esc(tv('lord', c.moon.lord))), 'naklord')}
+    ${kvRow(t('venus'), (esc(tv('sign', c.venus.sign))) + ' · ' + (t('house')) + ' ' + (c.venus.house), 'venus')}
+    ${kvRow(t('mars'), (esc(tv('sign', c.mars.sign))) + ' · ' + (t('house')) + ' ' + (c.mars.house), 'mars')}
+    ${kvRow(t('rahuketu'), (esc(tv('sign', c.rahu.sign))) + ' · ' + (esc(tv('sign', c.ketu.sign))), 'rahuketu')}
+    ${kvRow(t('manglik'), (c.manglik.is ? t('yes') + ' · ' + t('mars') + ' ' + t('house') + ' ' + c.mars.house : t('no')), 'manglik')}
+    ${kvRow(t('element'), (esc(tv('element', c.element))) + ' · ' + (esc(tv('modality', c.modality))), 'element')}
     <p class="tiny" style="margin-top:6px">${esc(c.place && c.place.known ? c.place.name : 'place not recognised')} · ${c.place ? c.place.lat.toFixed(2) + '°, ' + c.place.lon.toFixed(2) + '°' : ''}${!c.hasTime ? ' · no birth time, ascendant approximate' : ''}</p>
     ${!c.hasTime ? `<p class="tiny" style="margin-top:6px">Without a birth time the moon could be any of: ${c.moon.nakRange.map(esc).join(', ')}.</p>` : ''}
     <p class="tiny" style="margin-top:6px">${t('zodiacnote')}</p>
@@ -505,21 +506,21 @@ function viewProfile() {
   <div class="card">
     <div class="hd"><h3>${t('othersystems')}</h3><span class="lbl">${c.systems ? t('computed') : '—'}</span></div>
     ${c.systems ? `
-    <div class="kv"><span class="dim">Mayan (Tzolkin)</span><b>${esc(c.systems.mayan.mayan)} · tone ${c.systems.mayan.tone}</b></div>
-    <div class="kv"><span class="dim">Aztec (Tonalpohualli)</span><b>${esc(c.systems.mayan.aztec)}</b></div>
-    <div class="kv"><span class="dim">Celtic tree</span><b>${esc(c.systems.celtic)}</b></div>
-    <div class="kv"><span class="dim">Burmese day</span><b>${esc(c.systems.burmese)}</b></div>
-    <div class="kv"><span class="dim">13-sign (real sky)</span><b>${esc(c.systems.thirteen)}</b></div>` : ''}
-    <div class="kv"><span class="dim">Chinese</span><b>${esc(c.chinese.element)} ${esc(c.chinese.animal)}</b></div>
-    <p class="tiny" style="margin-top:6px">Chinese animals follow the actual new-year date, so January births fall in the previous year's animal.</p>
+    ${kvRow(t('mayan'), esc(c.systems.mayan.mayan) + ' · ' + t('tone') + ' ' + c.systems.mayan.tone, 'mayan')}
+    ${kvRow(t('aztec'), esc(c.systems.mayan.aztec), 'aztec')}
+    ${kvRow(t('celtic'), esc(c.systems.celtic), 'celtic')}
+    ${kvRow(t('burmese'), esc(c.systems.burmese), 'burmese')}
+    ${kvRow(t('thirteen'), esc(tv('sign', c.systems.thirteen)), 'thirteen')}` : ''}
+    ${kvRow(t('chinese'), esc(tv('element', c.chinese.element)) + ' ' + esc(c.chinese.animal), 'chinese')}
+    <p class="tiny" style="margin-top:6px">${t('chinesenote')}</p>
   </div>
 
   <div class="card">
     <div class="hd"><h3>${t('numerology')}</h3><span class="lbl">${t('frombirth')}</span></div>
-    <div class="kv"><span class="dim">${t('mulank')}</span><b>${n.mulank}</b></div>
-    <div class="kv"><span class="dim">${t('bhagyank')}</span><b>${n.bhagyank}</b></div>
-    ${n.namank ? `<div class="kv"><span class="dim">${t('namank')}</span><b>${n.namank}</b></div>` : ''}
-    <div class="kv"><span class="dim">${t('loshu')}</span><b>${Object.values(n.counts).filter(x => x > 0).length}/9</b></div>
+    ${kvRow(t('mulank'), (n.mulank), 'mulank')}
+    ${kvRow(t('bhagyank'), (n.bhagyank), 'bhagyank')}
+    ${n.namank ? kvRow(t('namank'), n.namank, 'namank') : ''}
+    ${kvRow(t('loshu'), Object.values(n.counts).filter(x => x > 0).length + '/9', 'loshu')}
   </div>
 
   <div class="card">
@@ -878,6 +879,10 @@ function translit(s) {
 /* ---------- language ---------- */
 const L = {
   en: {
+    testsblurb2:'Each one feeds the match score and your tier.', mayan:'Mayan (Tzolkin)', aztec:'Aztec (Tonalpohualli)', celtic:'Celtic tree', burmese:'Burmese day', thirteen:'13-sign (real sky)', tone:'tone', whattier:'what is a tier', chinesenote:'Chinese animals follow the actual new-year date, so January births fall in the previous year.',
+    seeswomen:'sees women', seesmen:'sees men', seesanyone:'sees anyone',
+    tierreach:'Keep replying and finishing tests to reach', toptier:'Top tier. Ten slots.', tierhide:'We do not show the number — only the tier.',
+    finish:'Finish', done:'done', updated:'Your character updated. The next person you are matched with will be scored on it.',
     slot:'slot', talking:'talking', newmsg:'new', slothelp:'Tap an empty slot to join the queue — each slot keeps its own place in line. You are matched with whoever has been waiting longest who wants someone like you. Minimise a chat with the arrow and it keeps running while you use your other slots.',
     val_sd:'self-direction',     val_st:'stimulation',     val_he:'pleasure',     val_ac:'achievement',     val_po:'power',     val_se:'security',     val_co:'conformity',     val_tr:'tradition',     val_be:'loyalty',     val_un:'fairness',     valm_sd:'you would rather work it out yourself than be told',     valm_st:'you need new things to stay interested',     valm_he:'you take enjoyment seriously',     valm_ac:'you measure yourself by what you get done',     valm_po:'you want the say, not just the seat',     valm_se:'you want the ground to stop moving',     valm_co:'you keep yourself in check',     valm_tr:'you keep what was handed to you',     valm_be:'your people come before your principles',     valm_un:'you care about strangers as much as your own', 
     computed:'computed', frombirth:'from your birth date',
@@ -908,6 +913,11 @@ const L = {
     lord:'lord', house:'house', pada:'pada', yes:'yes', no:'no', withtime:'with birth time', notime:'no birth time', redo:'redo', testsdone:'tests', typing:'typing…', matchedat:'You matched at', nothingyet:'Nothing has been said yet. Open with something only they could answer.'
   },
   hi: {
+    notme:'मैं नहीं', exactly:'बिल्कुल', back:'पीछे', next:'अगला', of:'में से', ofscore:'स्कोर का', start:'शुरू करें', redo:'फिर से', seeresult:'नतीजा देखें',
+    testsblurb2:'हर एक मैच स्कोर और आपके स्तर को बढ़ाता है।', mayan:'मायन (त्ज़ोल्किन)', aztec:'एज़्टेक (टोनल्पोहवाली)', celtic:'सेल्टिक पेड़', burmese:'बर्मी दिन', thirteen:'13-राशि (असली आकाश)', tone:'टोन', whattier:'स्तर क्या है', chinesenote:'चीनी जानवर असली नए साल की तारीख मानते हैं, इसलिए जनवरी में जन्मे लोग पिछले साल के जानवर में आते हैं।',
+    seeswomen:'स्त्रियों को देखते हैं', seesmen:'पुरुषों को देखते हैं', seesanyone:'किसी को भी देखते हैं',
+    tierreach:'यहाँ तक पहुँचने के लिए टेस्ट पूरे करते रहें —', toptier:'सबसे ऊपर का स्तर। दस स्लॉट।', tierhide:'हम नंबर नहीं दिखाते — सिर्फ स्तर।',
+    finish:'पूरा करें', done:'पूरा', updated:'आपका किरदार अपडेट हो गया। अगली मुलाक़ात इसी पर तय होगी।',
     slot:'स्लॉट', talking:'बातचीत', newmsg:'नया', slothelp:'खाली स्लॉट पर दबाइए और लाइन में लग जाइए — हर स्लॉट की अपनी जगह रहती है। आपकी मुलाक़ात उससे होती है जो सबसे लंबे समय से इंतज़ार कर रहा है और आपके जैसे किसी को चाहता है। चैट को तीर से छोटा कीजिए, वह चलती रहती है।',
     val_sd:'स्वयं की सोच',     val_st:'उत्तेजना',     val_he:'आनंद',     val_ac:'उपलब्धि',     val_po:'अधिकार',     val_se:'सुरक्षा',     val_co:'अनुशासन',     val_tr:'परंपरा',     val_be:'वफ़ादारी',     val_un:'निष्पक्षता',     valm_sd:'आप खुद सोचना पसंद करते हैं, बताया जाना नहीं',     valm_st:'दिलचस्पी बनाए रखने के लिए आपको नई चीज़ें चाहिए',     valm_he:'आप आनंद को गंभीरता से लेते हैं',     valm_ac:'आप खुद को अपने काम से आँकते हैं',     valm_po:'आपको कहने का हक़ चाहिए, सिर्फ़ कुर्सी नहीं',     valm_se:'आप चाहते हैं कि ज़मीन थम जाए',     valm_co:'आप खुद पर काबू रखते हैं',     valm_tr:'जो मिला है उसे आप रखते हैं',     valm_be:'आपके लोग सिद्धांतों से ऊपर हैं',     valm_un:'अजनबियों की परवाह भी उतनी ही', 
     computed:'गणना', frombirth:'आपकी जन्म तिथि से',
@@ -938,6 +948,11 @@ const L = {
     lord:'स्वामी', house:'भाव', pada:'पाद', yes:'हाँ', no:'नहीं', withtime:'जन्म समय के साथ', notime:'जन्म समय नहीं', redo:'दोबारा', testsdone:'टेस्ट', typing:'लिख रहे हैं…', matchedat:'आपकी मुलाक़ात', nothingyet:'अभी कुछ नहीं कहा गया। ऐसा कुछ पूछिए जिसका जवाब सिर्फ़ वही दे सके।'
   },
   hinglish: {
+    notme:'Main nahi', exactly:'Bilkul', back:'Peeche', next:'Aage', of:'me se', ofscore:'score ka', start:'Shuru karo', redo:'Phir se', seeresult:'Nateeja dekho',
+    testsblurb2:'Har test match score aur aapke tier ko badhata hai.', mayan:'Mayan (Tzolkin)', aztec:'Aztec (Tonalpohualli)', celtic:'Celtic ped', burmese:'Burmese din', thirteen:'13-rashi (asli aakash)', tone:'tone', whattier:'tier kya hai', chinesenote:'Chinese janwar asli naye saal ki date maante hain, isliye January mein paida hue log pichhle saal ke janwar mein aate hain.',
+    seeswomen:'ladkiyan dekhta hai', seesmen:'ladke dekhta hai', seesanyone:'koi bhi dekhta hai',
+    tierreach:'Yahan tak pahunchne ke liye tests poore karte raho —', toptier:'Sabse upar ka tier. Das slots.', tierhide:'Hum number nahi dikhate — sirf tier.',
+    finish:'Poora karo', done:'done', updated:'Aapka character update ho gaya. Agli match isi par tay hogi.',
     slot:'Slot', talking:'talking', newmsg:'naya', slothelp:'Khaali slot par tap karo aur line mein lag jao — har slot ki apni jagah rehti hai. Aapki match usse hoti hai jo sabse lambe samay se wait kar raha hai. Chat ko arrow se chhota karo, woh chalti rehti hai.',
     val_sd:'khud ki soch',     val_st:'nayi cheezein',     val_he:'aanand',     val_ac:'upalabdhi',     val_po:'adhikaar',     val_se:'suraksha',     val_co:'anushasan',     val_tr:'parampara',     val_be:'wafadari',     val_un:'nishpakshata',     valm_sd:'aap khud sochna pasand karte hain',     valm_st:'dilchaspi ke liye nayi cheezein chahiye',     valm_he:'aap aanand ko seriously lete hain',     valm_ac:'aap khud ko kaam se aankte hain',     valm_po:'aapko kehne ka haq chahiye',     valm_se:'aap chahte hain zameen tham jaye',     valm_co:'aap khud par kaabu rakhte hain',     valm_tr:'jo mila hai use rakhte hain',     valm_be:'aapke log siddhanton se upar hain',     valm_un:'ajnabiyon ki parwah bhi utni hi', 
     computed:'computed', frombirth:'aapki janm tithi se',
@@ -1045,6 +1060,45 @@ function tv(kind, value) {
   const m = VOCAB[kind]; if (!m || value == null) return value;
   const e = m[String(value)]; if (!e) return value;
   return S.lang === 'hi' ? e[0] : S.lang === 'hinglish' ? e[1] : value;
+}
+
+
+/* what each calculated row actually means */
+const EXPLAIN = {
+  lagna:'The sign that was rising when you were born. It is the you that other people meet first — your manner, not your core.',
+  sun:'Where the Sun sat at your birth. Your sense of self, and what you are here to become.',
+  moon:'Your emotional weather — how you react before you have had time to think.',
+  nak:'One of the twenty-seven lunar mansions. It sharpens the Moon sign into something specific about how your mind works.',
+  naklord:'The planet that rules your nakshatra. It colours how that nakshatra actually plays out.',
+  venus:'How you love, and what you find beautiful.',
+  mars:'How you fight, and what you want.',
+  rahuketu:'The eclipse points. Rahu is what you chase. Ketu is what you already know.',
+  manglik:'Mars in certain houses. Traditionally said to want a matching chart — a temperament, not a curse.',
+  element:"Your Sun sign's element and mode — the texture of how you act.",
+  mayan:'The Tzolkin day you were born on. A 260-day count, with nothing in common with the Western zodiac.',
+  aztec:'The Aztec day sign for your birth date.',
+  celtic:'The tree the Celts assigned to the window you were born in.',
+  burmese:'The day of the week you were born, in the Burmese eight-day week.',
+  thirteen:'The constellation the Sun was actually in. Astronomy, not astrology.',
+  chinese:'Animal and element for your birth year. The animal changes at Chinese new year, not on 1 January.',
+  mulank:'Your birth day number, reduced. The driver — how you move through things.',
+  bhagyank:'Your full date, reduced. The destination you keep heading towards.',
+  namank:'Your name, reduced by Chaldean values. How you are read before you speak.',
+  loshu:'How many of each number sit in your grid. The empty squares are the lessons.',
+  tier:'Your standing. It decides how many conversations you can run at once, and nothing else.'
+};
+function ex(k) {
+  if (S.lang === 'en') return EXPLAIN[k] || '';
+  const m = S.descHi && S.descHi.explain;
+  const v = m && m[k];
+  if (!v) return EXPLAIN[k] || '';
+  return S.lang === 'hi' ? v : hinglish(v);
+}
+function kvRow(label, value, key) {
+  const txt = key ? ex(key) : '';
+  const val = esc(String(value == null ? '—' : value));
+  if (!txt) return '<div class="kv"><span class="dim">' + label + '</span><b>' + val + '</b></div>';
+  return '<details class="kvd"><summary><span class="dim">' + label + '</span><b>' + val + '<i>⌄</i></b></summary><p class="tiny">' + esc(txt) + '</p></details>';
 }
 
 /* ---------- avatars: layered SVG, no images, no uploads ---------- */
@@ -1302,7 +1356,7 @@ async function loadTests() {
   S.tests = tests;
   try {
     const d = await api('/api/descriptions');
-    S.descHi = d.descriptions || {};
+    S.descHi = Object.assign({}, d.descriptions || {}, { explain: d.explain || {} });
   } catch { S.descHi = {}; }
 }
 

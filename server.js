@@ -494,6 +494,10 @@ let DESCRIBE_HI = null;
 try { DESCRIBE_HI = JSON.parse(fs.readFileSync(path.join(__dirname, 'describe-hi.json'), 'utf8')); }
 catch { console.error('describe-hi.json missing'); }
 
+let EXPLAIN_HI = null;
+try { EXPLAIN_HI = JSON.parse(fs.readFileSync(path.join(__dirname, 'explain-hi.json'), 'utf8')); }
+catch { console.error('explain-hi.json missing'); }
+
 let PLACES = [];
 try { PLACES = JSON.parse(fs.readFileSync(path.join(__dirname, 'geo.json'), 'utf8')); }
 catch { console.error('geo.json missing — place lookup will fail'); }
@@ -1342,7 +1346,7 @@ function createServer() {
       }
 
       if (method === 'GET' && p === '/api/descriptions') {
-        return send(res, 200, { descriptions: DESCRIBE_HI || {} });
+        return send(res, 200, { descriptions: DESCRIBE_HI || {}, explain: EXPLAIN_HI || {} });
       }
       if (method === 'GET' && p === '/api/me') {
         return send(res, 200, {
