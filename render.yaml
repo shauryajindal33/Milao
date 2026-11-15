@@ -1,22 +1,21 @@
-# Render blueprint. Free plan works but has NO disk: every restart wipes accounts.
-# For anything you care about, use plan: starter and keep the disk block below.
+# Create the service by hand (New → Web Service). These are the settings it needs.
+# Free plan sleeps and has no disk — with Postgres attached the data still survives,
+# because it lives in Neon, not on the instance.
 services:
   - type: web
     name: milao
     runtime: node
-    plan: starter
+    plan: free
     region: singapore
-    buildCommand: echo "no build step"
+    buildCommand: npm install
     startCommand: node server.js
     healthCheckPath: /api/health
     envVars:
-      - key: DATA_DIR
-        value: /var/data
-      - key: SEED
-        value: "0"
+      - key: DATABASE_URL
+        sync: false          # paste the Neon connection string
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false          # e.g. Milao <hello@yourdomain.com>
       - key: ADMIN_TOKEN
         generateValue: true
-    disk:
-      name: milao-data
-      mountPath: /var/data
-      sizeGB: 1

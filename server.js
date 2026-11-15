@@ -10,6 +10,7 @@
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
+const { makeStore } = require('./store');
 const crypto = require('node:crypto');
 const os = require('node:os');
 /* astrology engine, inlined so the repo stays flat */
@@ -478,17 +479,53 @@ const DB_FILE = path.join(DATA_DIR, 'db.json');
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const PRESENCE_MS = 25_000;
-const VERSION = 'v9';
+const VERSION = 'v11';
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
+const store = makeStore({ dataDir: DATA_DIR, connectionString: process.env.DATABASE_URL });
 
 /* ================================================================== *
  * storage
  * ================================================================== */
 const blank = () => ({ users: {}, tokens: {}, chats: {}, queue: [], reports: [], seq: 1 });
 let db = blank();
-try { db = Object.assign(blank(), JSON.parse(fs.readFileSync(DB_FILE, 'utf8'))); } catch {}
-const save = () => { const t = DB_FILE + '.tmp'; fs.writeFileSync(t, JSON.stringify(db)); fs.renameSync(t, DB_FILE); };
+let saveTimer = null, lastSaveError = null;
+
+/* debounced write-through: mutations stay synchronous in the request path */
+function save() {
+  if (saveTimer) return;
+  saveTimer = setTimeout(async () => {
+    saveTimer = null;
+    try { await store.save(db); lastSaveError = null; }
+    catch (e) { lastSaveError = e.message; console.error('save failed:', e.message); }
+  }, 250);
+}
+async function flush() {
+  if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+  try { await store.save(db); } catch (e) { console.error('flush failed:', e.message); }
+}
+async function initStore() {
+  const loaded = await store.init();
+  if (loaded) db = Object.assign(blank(), loaded);
+  return store.kind;
+}
+
+/* ---------- mail ---------- */
+async function sendMail(to, subject, text) {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) {
+    console.log(`\n[mail:dev] to=${to}\n  ${subject}\n  ${text.replace(/\n/g, '\n  ')}\n`);
+    return { dev: true };
+  }
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
+    body: JSON.stringify({ from: process.env.MAIL_FROM || 'Milao <onboarding@resend.dev>', to: [to], subject, text })
+  });
+  if (!res.ok) throw new Error('mail rejected: ' + (await res.text()).slice(0, 160));
+  return { ok: true };
+}
+const sixDigits = () => String(Math.floor(100000 + Math.random() * 900000));
 const uid = () => crypto.randomBytes(9).toString('hex');
 const now = () => Date.now();
 
@@ -974,10 +1011,10 @@ function createServer() {
         const a = path.join(__dirname, 'index.html'), b = path.join(PUBLIC_DIR, 'index.html');
         return send(res, 200, fs.readFileSync(fs.existsSync(a) ? a : b, 'utf8'));
       }
-      if (method === 'GET' && p === '/api/health') return send(res, 200, { ok: true, version: VERSION, users: Object.keys(db.users).length, queued: db.queue.length, chats: Object.keys(db.chats).length });
+      if (method === 'GET' && p === '/api/health') return send(res, 200, { ok: true, version: VERSION, store: store.kind, lastSaveError, users: Object.keys(db.users).length, queued: db.queue.length, chats: Object.keys(db.chats).length });
 
       /* ---------- auth ---------- */
-      if (method === 'POST' && p === '/api/signup') {
+      if (method === 'POST' && p === '/api/signup/start') {
         if (!rateLimit('signup:' + ipOf(req), 20, 60_000)) return bad(res, 429, 'Too many signups. Wait a minute.');
         const b = await readBody(req);
         const email = String(b.email || '').trim().toLowerCase();
@@ -1001,16 +1038,85 @@ function createServer() {
         if (!city) return bad(res, 400, 'Birth place is needed.');
         if (Object.values(db.users).some(u => u.email === email)) return bad(res, 409, 'That email is already registered.');
 
-        const { salt, hash } = makePw(password);
+        const code = sixDigits();
+        db.pending = db.pending || {};
+        db.pending[email] = {
+          code, expires: now() + 10 * 60_000, attempts: 0,
+          payload: { password, name, status, gender, pref, dob, tob, city }
+        };
+        save();
+        let mailed;
+        try {
+          mailed = await sendMail(email, 'Your Milao code',
+            `Your verification code is ${code}.\n\nIt expires in 10 minutes. If this was not you, ignore this email.`);
+        } catch (e) {
+          delete db.pending[email]; save();
+          return bad(res, 502, 'Could not send the code. Try again in a minute.');
+        }
+        return send(res, 200, { pending: true, devCode: mailed.dev ? code : undefined });
+      }
+
+      if (method === 'POST' && p === '/api/signup/verify') {
+        const b = await readBody(req);
+        const email = String(b.email || '').trim().toLowerCase();
+        const code = String(b.code || '').trim();
+        const pend = (db.pending || {})[email];
+        if (!pend) return bad(res, 400, 'Start again — that code has expired.');
+        if (pend.expires < now()) { delete db.pending[email]; save(); return bad(res, 400, 'That code expired. Start again.'); }
+        if (pend.attempts >= 5) { delete db.pending[email]; save(); return bad(res, 429, 'Too many tries. Start again.'); }
+        pend.attempts++;
+        if (code !== pend.code) { save(); return bad(res, 400, 'Wrong code.'); }
+        if (Object.values(db.users).some(u => u.email === email)) return bad(res, 409, 'That email is already registered.');
+
+        const p2 = pend.payload;
+        const { salt, hash } = makePw(p2.password);
         const user = {
-          id: uid(), email, salt, hash, name, status, gender, pref, dob, tob, city,
+          id: uid(), email, salt, hash, name: p2.name, status: p2.status, gender: p2.gender,
+          pref: p2.pref, dob: p2.dob, tob: p2.tob, city: p2.city,
           createdAt: now(), lastSeen: now(), results: {}, cibilAdj: 0,
           stats: { chats: 0, messages: 0, skips: 0, leaves: 0, skipped: 0, reported: 0 },
-          chart: astro.chart({ dob, tob, name, place: city })
+          chart: astro.chart({ dob: p2.dob, tob: p2.tob, name: p2.name, place: p2.city })
         };
         db.users[user.id] = user;
+        delete db.pending[email];
         save();
         return send(res, 200, { token: newSession(user), user: publicUser(user) });
+      }
+
+      if (method === 'POST' && p === '/api/password/forgot') {
+        if (!rateLimit('forgot:' + ipOf(req), 10, 60_000)) return bad(res, 429, 'Too many requests. Wait a minute.');
+        const b = await readBody(req);
+        const email = String(b.email || '').trim().toLowerCase();
+        const u = Object.values(db.users).find(x => x.email === email);
+        if (u) {
+          const code = sixDigits();
+          u.reset = { code, expires: now() + 15 * 60_000, attempts: 0 };
+          save();
+          try {
+            await sendMail(email, 'Reset your Milao password',
+              `Your reset code is ${code}.\n\nIt expires in 15 minutes.`);
+          } catch (e) { /* say nothing to the caller */ }
+        }
+        return send(res, 200, { sent: true });     // never reveal whether the email exists
+      }
+
+      if (method === 'POST' && p === '/api/password/reset') {
+        const b = await readBody(req);
+        const email = String(b.email || '').trim().toLowerCase();
+        const code = String(b.code || '').trim();
+        const password = String(b.password || '');
+        if (password.length < 8) return bad(res, 400, 'Password needs 8 characters.');
+        const u = Object.values(db.users).find(x => x.email === email);
+        if (!u || !u.reset || u.reset.expires < now()) return bad(res, 400, 'That code is no longer valid.');
+        if (u.reset.attempts >= 5) { delete u.reset; save(); return bad(res, 429, 'Too many tries. Request a new code.'); }
+        u.reset.attempts++;
+        if (code !== u.reset.code) { save(); return bad(res, 400, 'Wrong code.'); }
+        const { salt, hash } = makePw(password);
+        u.salt = salt; u.hash = hash; delete u.reset;
+        // every existing session dies with the old password
+        for (const [tok, id] of Object.entries(db.tokens)) if (id === u.id) delete db.tokens[tok];
+        save();
+        return send(res, 200, { ok: true, token: newSession(u), user: publicUser(u) });
       }
 
       if (method === 'POST' && p === '/api/login') {
@@ -1024,7 +1130,7 @@ function createServer() {
       }
 
       const me = authUser(req);
-      if (p.startsWith('/api/') && !me && !p.startsWith('/api/dev')) return bad(res, 401, 'Sign in first.');
+      if (p.startsWith('/api/') && !me && !p.startsWith('/api/dev') && !p.startsWith('/api/admin')) return bad(res, 401, 'Sign in first.');
       if (me) {
         if (me.suspended) return bad(res, 403, 'This account is suspended pending review.');
         me.lastSeen = now();
@@ -1193,6 +1299,56 @@ function createServer() {
         }
       }
 
+      /* ---------- admin ---------- */
+      if (method === 'GET' && p === '/admin') return send(res, 200, adminPage(url.searchParams.get('token') || ''));
+
+      if (p.startsWith('/api/admin/')) {
+        if (!ADMIN_TOKEN || url.searchParams.get('token') !== ADMIN_TOKEN) return bad(res, 403, 'Admin token required.');
+        if (method === 'GET' && p === '/api/admin/stats') {
+          const users = Object.values(db.users);
+          const day = 24 * 3600e3;
+          const chats = Object.values(db.chats);
+          const msgs = chats.reduce((n, c) => n + c.messages.length, 0);
+          const chatted = new Set(chats.flatMap(c => [c.a.uid, c.b.uid]));
+          const replied = chats.filter(c => new Set(c.messages.map(m => m.uid)).size > 1).length;
+          return send(res, 200, {
+            users: users.length,
+            signupsToday: users.filter(u => now() - u.createdAt < day).length,
+            activeToday: users.filter(u => now() - u.lastSeen < day).length,
+            withTests: users.filter(u => Object.keys(u.results || {}).length > 0).length,
+            chatted: chatted.size,
+            chats: chats.length,
+            chatsWithReply: replied,
+            messages: msgs,
+            avgMessagesPerChat: chats.length ? +(msgs / chats.length).toFixed(1) : 0,
+            reports: (db.reports || []).length,
+            reportsPer100Chats: chats.length ? +((db.reports || []).length / chats.length * 100).toFixed(1) : 0,
+            suspended: users.filter(u => u.suspended).length,
+            queued: db.queue.length,
+            store: store.kind
+          });
+        }
+        if (method === 'GET' && p === '/api/admin/reports') {
+          const list = (db.reports || []).slice(-200).reverse().map(r => {
+            const from = db.users[r.from], to = db.users[r.to];
+            return {
+              id: r.id, at: r.at, reason: r.reason,
+              from: from ? { id: from.id, name: from.name, email: from.email } : null,
+              to: to ? { id: to.id, name: to.name, email: to.email, suspended: !!to.suspended, reported: (to.stats || {}).reported || 0 } : null
+            };
+          });
+          return send(res, 200, { reports: list });
+        }
+        if (method === 'POST' && p === '/api/admin/suspend') {
+          const b = await readBody(req);
+          const u = db.users[String(b.userId || '')];
+          if (!u) return bad(res, 404, 'No such user.');
+          u.suspended = !!b.suspend;
+          save();
+          return send(res, 200, { ok: true, suspended: u.suspended });
+        }
+      }
+
       /* ---------- dev ---------- */
       if (method === 'GET' && p === '/api/dev/users') {
         if (!ADMIN_TOKEN || url.searchParams.get('token') !== ADMIN_TOKEN) return bad(res, 403, 'Dev token required.');
@@ -1215,16 +1371,74 @@ function createServer() {
   });
 }
 
+function adminPage(token) {
+  const ok = ADMIN_TOKEN && token === ADMIN_TOKEN;
+  return `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Milao admin</title>
+<style>
+body{font:14px/1.55 ui-monospace,SFMono-Regular,monospace;background:#1A1512;color:#F3EADC;padding:22px;max-width:880px;margin:auto}
+h1{font-size:15px;letter-spacing:.16em;text-transform:uppercase;color:#D9885A;margin:0 0 4px}
+p.sub{color:#B3A392;margin:0 0 20px;font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:24px}
+.k{background:#241C17;border:1px solid #3A2E24;border-radius:10px;padding:12px}
+.k b{display:block;font-size:22px;color:#F3EADC}
+.k span{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#8A7B6B}
+h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#B3A392;margin:22px 0 8px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+td,th{border-bottom:1px solid #3A2E24;padding:7px 6px;text-align:left;vertical-align:top}
+th{color:#8A7B6B;font-weight:400;font-size:10px;letter-spacing:.1em;text-transform:uppercase}
+button{font:inherit;font-size:11px;background:#3A2418;color:#D9885A;border:1px solid #5A3A24;border-radius:7px;padding:5px 9px;cursor:pointer}
+.tag{font-size:10px;padding:2px 6px;border-radius:99px;background:#3A1F1A;color:#E58B7F}
+</style>
+<h1>Milao admin</h1>
+${ok ? `<p class="sub">Private. This page shows emails. Do not share the link.</p>
+<div class="grid" id="stats"></div>
+<h2>Reports</h2>
+<table><thead><tr><th>when</th><th>reason</th><th>reported</th><th>by</th><th></th></tr></thead><tbody id="reports"></tbody></table>
+<script>
+const T = '${token}';
+const ago = t => { const s = Math.round((Date.now() - t) / 60000); return s < 60 ? s + 'm' : Math.round(s / 60) + 'h'; };
+async function load() {
+  const s = await (await fetch('/api/admin/stats?token=' + T)).json();
+  document.getElementById('stats').innerHTML = Object.entries(s).map(([k, v]) =>
+    '<div class="k"><b>' + v + '</b><span>' + k.replace(/([A-Z])/g, ' $1').toLowerCase() + '</span></div>').join('');
+  const r = await (await fetch('/api/admin/reports?token=' + T)).json();
+  document.getElementById('reports').innerHTML = r.reports.map(x =>
+    '<tr><td>' + ago(x.at) + '</td><td>' + x.reason + '</td><td>' +
+    (x.to ? x.to.name + '<br><small>' + x.to.email + '</small>' : '?') +
+    (x.to && x.to.suspended ? ' <span class="tag">suspended</span>' : '') +
+    '</td><td>' + (x.from ? x.from.name : '?') + '</td><td><button data-id="' + (x.to ? x.to.id : '') + '" data-s="' + (x.to && x.to.suspended ? '0' : '1') + '">' + (x.to && x.to.suspended ? 'unsuspend' : 'suspend') + '</button></td></tr>'
+  ).join('') || '<tr><td colspan="5" style="color:#8A7B6B">no reports yet</td></tr>';
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button[data-id]');
+  if (!b) return;
+  await fetch('/api/admin/suspend?token=' + T, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId: b.dataset.id, suspend: b.dataset.s === '1' }) });
+  load();
+});
+load(); setInterval(load, 15000);
+</script>` : `<p class="sub">Open as /admin?token=YOUR_ADMIN_TOKEN after setting ADMIN_TOKEN on the server.</p>`}`;
+}
+
 if (require.main === module) {
-  const server = createServer();
-  setInterval(() => { if (sweepQueue()) save(); }, 5000);
-  server.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n  Milao on http://localhost:${PORT}`);
-    for (const addrs of Object.values(os.networkInterfaces())) for (const a of addrs || []) if (a.family === 'IPv4' && !a.internal) console.log(`  network:  http://${a.address}:${PORT}`);
-    console.log(`  data: ${DB_FILE}\n`);
-  });
-  const shutdown = () => { try { save(); } catch {} server.close(() => process.exit(0)); setTimeout(() => process.exit(0), 1500); };
-  process.on('SIGTERM', shutdown); process.on('SIGINT', shutdown);
+  initStore()
+    .then(kind => console.log(`  store: ${kind}${kind === 'json' ? '  (set DATABASE_URL to make it durable)' : ''}`))
+    .catch(e => console.error('store init failed:', e.message))
+    .finally(() => {
+      const server = createServer();
+      setInterval(() => { if (sweepQueue()) save(); }, 5000);
+      server.listen(PORT, '0.0.0.0', () => {
+        console.log(`\n  Milao on http://localhost:${PORT}`);
+        for (const addrs of Object.values(os.networkInterfaces())) for (const a of addrs || []) if (a.family === 'IPv4' && !a.internal) console.log(`  network:  http://${a.address}:${PORT}`);
+        if (ADMIN_TOKEN) console.log(`  admin:    http://localhost:${PORT}/admin?token=YOUR_ADMIN_TOKEN`);
+        console.log('');
+      });
+      const shutdown = () => {
+        flush().finally(() => { server.close(() => process.exit(0)); setTimeout(() => process.exit(0), 1500); });
+      };
+      process.on('SIGTERM', shutdown); process.on('SIGINT', shutdown);
+    });
 }
 
 module.exports = { createServer, scoreTest, matchScore, cibilOf, slotsOf, tierOf, TESTS, TEST_ORDER, db: () => db, sweepQueue, tryMatch };

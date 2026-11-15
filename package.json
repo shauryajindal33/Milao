@@ -1,9 +1,17 @@
 {
   "name": "milao",
-  "version": "4.0.0",
-  "description": "Stranger chat filtered by a computed character. Zero dependencies.",
+  "version": "11.0.0",
+  "description": "Stranger chat filtered by a computed character.",
   "main": "server.js",
-  "scripts": { "start": "node server.js", "test": "node test.js" },
-  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "pg": "^8.23.1"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "private": true
 }

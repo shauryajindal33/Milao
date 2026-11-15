@@ -10,24 +10,21 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#F4EBDC; --surface:#FCF7EC; --surface-2:#F0E7D6;
-  --ink:#2A2119; --dim:#6E5F4C; --faint:#9A8A73;
-  --line:rgba(42,33,25,.15); --line-soft:rgba(42,33,25,.08);
-  --teal:#924F27; --teal-soft:#F1E0CE;
-  --green:#4E6B3C; --yellow:#A8761E; --red:#8E3B2E;
-  --green-soft:#E4E8D6; --yellow-soft:#F4E6CB; --red-soft:#F3DED7;
-  --serif:"Instrument Serif",Georgia,serif;
-  --sans:"IBM Plex Sans","Segoe UI",sans-serif;
-  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --bg:#FBF2EF; --surface:#FFFBF9; --surface-2:#F7E8E4;
+  --ink:#2B1A1D; --dim:#7B5D60; --faint:#A98C8E;
+  --line:rgba(43,26,29,.15); --line-soft:rgba(43,26,29,.07);
+  --teal:#B0203C; --teal-soft:#F8DEE3;
+  --green:#2F7A50; --yellow:#B0761A; --red:#7E1F2C;
+  --green-soft:#E2F0E6; --yellow-soft:#F8EBD4; --red-soft:#F5DFE1;
 }
 @media (prefers-color-scheme:dark){
   :root{
-    --bg:#1A1512; --surface:#241C17; --surface-2:#2C231C;
-    --ink:#F3EADC; --dim:#B3A392; --faint:#8A7B6B;
-    --line:rgba(243,234,220,.15); --line-soft:rgba(243,234,220,.07);
-    --teal:#D9885A; --teal-soft:#3A2418;
-    --green:#8FBF6E; --yellow:#E0B25E; --red:#E58B7F;
-    --green-soft:#24301C; --yellow-soft:#352A15; --red-soft:#3A1F1A;
+  --bg:#160F11; --surface:#1F1418; --surface-2:#271A1F;
+  --ink:#F8EDEA; --dim:#C2A6A8; --faint:#8F7477;
+  --line:rgba(248,237,234,.15); --line-soft:rgba(248,237,234,.07);
+  --teal:#F2687D; --teal-soft:#3A1A23;
+  --green:#6FBF8E; --yellow:#E0B25E; --red:#E58B95;
+  --green-soft:#1B2C22; --yellow-soft:#33280F; --red-soft:#331A1E;
   }
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -36,7 +33,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 @media (min-width:520px){body{background:var(--surface-2);display:flex;justify-content:center}}
 #app{width:100%;max-width:480px;background:var(--bg);min-height:100dvh;display:flex;flex-direction:column;position:relative}
 @media (min-width:520px){#app{box-shadow:0 0 0 1px var(--line)}}
-main{flex:1;padding:16px 16px 92px;overflow-y:auto}
+main{flex:1;padding:16px 16px 128px;overflow-y:auto}
 h1,h2,h3{font-family:var(--serif);font-weight:400;letter-spacing:-.01em;margin:0}
 h1{font-size:30px;line-height:1.08} h2{font-size:22px;line-height:1.15} h3{font-size:17px}
 p{margin:0}
@@ -59,7 +56,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .row{display:flex;gap:8px}.row>*{flex:1}
 label.f{display:block;margin-bottom:11px}
 label.f span{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
-input,select,textarea{width:100%;font-family:var(--sans);font-size:15px;padding:11px 12px;border-radius:11px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink)}
+input,select,textarea{width:100%;font-family:var(--sans);font-size:16px;padding:11px 12px;border-radius:11px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink)}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);outline-offset:1px}
 textarea{resize:vertical;min-height:60px}
 .seg{display:flex;border:1px solid var(--line);border-radius:12px;overflow:hidden}
@@ -199,6 +196,25 @@ function viewTab() {
 
 /* ------------------------------ auth ------------------------------ */
 function viewAuth() {
+  if (S.authMode === 'otp') {
+    return `<h1 style="margin-bottom:6px">Check your email.</h1>
+      <p class="dim small" style="margin:8px 0 16px">We sent a six-digit code to <b>${esc(S.pendingEmail || '')}</b>. It expires in ten minutes.</p>
+      ${S.devCode ? `<p class="tiny" style="margin-bottom:12px">No mail service configured — your code is <b>${esc(S.devCode)}</b></p>` : ''}
+      <label class="f"><span>code</span><input id="o-code" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code"></label>
+      <button class="p w" data-act="verifyotp">Verify</button>
+      <button class="ghost w" style="margin-top:8px" data-act="authmode" data-v="signup">Back</button>`;
+  }
+  if (S.authMode === 'forgot') {
+    return `<h1 style="margin-bottom:6px">Reset your password.</h1>
+      <p class="dim small" style="margin:8px 0 16px">${S.resetSent ? 'Enter the code we emailed you, and a new password.' : 'We will email you a six-digit code.'}</p>
+      ${S.resetSent ? `
+        <label class="f"><span>code</span><input id="r-code" inputmode="numeric" maxlength="6" placeholder="000000"></label>
+        <label class="f"><span>new password</span><input id="r-pass" type="password" placeholder="8 characters minimum"></label>
+        <button class="p w" data-act="resetpass">Set new password</button>` : `
+        <label class="f"><span>email</span><input id="r-email" type="email" placeholder="you@example.com"></label>
+        <button class="p w" data-act="forgot">Send code</button>`}
+      <button class="ghost w" style="margin-top:8px" data-act="authmode" data-v="login">Back to sign in</button>`;
+  }
   const su = S.authMode === 'signup';
   return `
     <h1 style="margin-bottom:6px">${su ? 'Strangers, sorted<br>by character.' : 'Welcome back.'}</h1>
@@ -227,12 +243,13 @@ function viewAuth() {
         <label class="f"><span>birth time — optional</span><input id="a-tob" type="time"></label>
         <label class="f"><span>birth place</span><input id="a-city" placeholder="Bengaluru" value="Bengaluru"></label>
       </div>
-      <p class="tiny" style="margin:-2px 0 14px">Birth place is required; birth time sharpens the moon and nakshatra. 18+ only.<br><span style="opacity:.6">build v9</span></p>
+      <p class="tiny" style="margin:-2px 0 14px">Birth place is required; birth time sharpens the moon and nakshatra. 18+ only.</p>
       <button class="p w" data-act="signup">Create my character</button>
     ` : `
       <label class="f"><span>email</span><input id="a-email" type="email" placeholder="you@example.com"></label>
       <label class="f"><span>password</span><input id="a-pass" type="password" placeholder="your password"></label>
       <button class="p w" data-act="login">Sign in</button>
+      <button class="ghost w" style="margin-top:8px" data-act="authmode" data-v="forgot">Forgot password?</button>
     `}`;
 }
 
@@ -455,13 +472,38 @@ document.addEventListener('click', async (e) => {
     case 'authmode': S.authMode = el.dataset.v; render(); break;
 
     case 'signup': await guard(async () => {
-      const r = await api('/api/signup', { method: 'POST', body: {
+      const body = {
         email: $('#a-email').value, password: $('#a-pass').value, name: $('#a-name').value,
         status: $('#a-status').value, gender: S.gender, pref: S.pref,
         dob: $('#a-dob').value, tob: $('#a-tob').value, city: $('#a-city').value
+      };
+      const r = await api('/api/signup/start', { method: 'POST', body });
+      S.pendingEmail = body.email.trim().toLowerCase();
+      S.devCode = r.devCode || null;
+      S.authMode = 'otp'; render();
+      toast('Code sent');
+    }); break;
+
+    case 'verifyotp': await guard(async () => {
+      const r = await api('/api/signup/verify', { method: 'POST', body: { email: S.pendingEmail, code: $('#o-code').value.trim() } });
+      S.token = r.token; localStorage.setItem('milao_token', r.token);
+      S.devCode = null; S.authMode = 'signup';
+      await boot(); toast('Verified. Build your character.');
+    }); break;
+
+    case 'forgot': await guard(async () => {
+      await api('/api/password/forgot', { method: 'POST', body: { email: $('#r-email').value } });
+      S.resetEmail = $('#r-email').value.trim().toLowerCase();
+      S.resetSent = true; render(); toast('If that email exists, a code is on its way');
+    }); break;
+
+    case 'resetpass': await guard(async () => {
+      const r = await api('/api/password/reset', { method: 'POST', body: {
+        email: S.resetEmail, code: $('#r-code').value.trim(), password: $('#r-pass').value
       }});
       S.token = r.token; localStorage.setItem('milao_token', r.token);
-      await boot(); toast('Welcome. Build your character.');
+      S.resetSent = false; S.authMode = 'login';
+      await boot(); toast('Password changed');
     }); break;
 
     case 'login': await guard(async () => {
