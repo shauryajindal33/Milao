@@ -403,9 +403,9 @@ function thirteenSign(tropicalLon) {
 }
 
 /* ---------------- one person's whole chart ---------------- */
-function chart({ dob, tob, name, place }) {
+function chart({ dob, tob, name, place, lat, lon }) {
   const hasTime = !!tob;
-  const p = placeOf(place);
+  const p = (lat != null && lon != null) ? { lat, lon, tz: 5.5, known: true } : placeOf(place);
   const jd = jdFromLocal(dob, tob || '12:00', p.tz);
   const ay = lahiriAyanamsa(jd);
   const sid = lon => norm360(lon - ay);
@@ -479,7 +479,20 @@ const DB_FILE = path.join(DATA_DIR, 'db.json');
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const PRESENCE_MS = 25_000;
-const VERSION = 'v11';
+const VERSION = 'v12';
+
+/* ---------- India place index: 7k towns with real coordinates ---------- */
+let PLACES = [];
+try { PLACES = JSON.parse(fs.readFileSync(path.join(__dirname, 'geo.json'), 'utf8')); }
+catch { console.error('geo.json missing — place lookup will fail'); }
+const placeIndex = new Map(PLACES.map(r => [String(r[0]).toLowerCase(), { name: r[0], state: r[1], lat: r[2], lon: r[3] }]));
+function lookupPlace(input) {
+  const k = String(input || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+  if (!k) return null;
+  if (placeIndex.has(k)) return placeIndex.get(k);
+  const first = k.split(',')[0].trim();
+  return placeIndex.get(first) || null;
+}
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
 const store = makeStore({ dataDir: DATA_DIR, connectionString: process.env.DATABASE_URL });
@@ -546,112 +559,103 @@ const SCALE = ['Not me', 'A little', 'Somewhat', 'Quite', 'Exactly'];
 
 const TESTS = {
   big5: {
-    title: 'Big Five', blurb: 'The backbone. Ten statements, ninety seconds.', kind: 'scale', weight: 12,
+    title: 'Big Five', blurb: 'Twenty statements. The backbone of the score — the model psychologists actually use.',
+    kind: 'scale', weight: 25,
     items: [
-      { id: 'o1', dim: 'O', text: 'I look for the strange option on a menu.' },
-      { id: 'o2', dim: 'O', text: 'Routine bores me faster than it bores most people.' },
-      { id: 'c1', dim: 'C', text: 'I finish the things I start.' },
-      { id: 'c2', dim: 'C', text: 'I leave packing for the last hour.', rev: true },
-      { id: 'e1', dim: 'E', text: 'I start conversations with strangers.' },
-      { id: 'e2', dim: 'E', text: 'I would rather text than call.', rev: true },
-      { id: 'a1', dim: 'A', text: 'I would rather adjust than win the argument.' },
-      { id: 'a2', dim: 'A', text: 'I say the hard thing even when it costs me.', rev: true },
-      { id: 'n1', dim: 'N', text: 'I replay awkward moments for days.', rev: true },
-      { id: 'n2', dim: 'N', text: 'I stay calm when plans collapse.' }
+      { id:'o1', dim:'O', text:'I look for the strange option on a menu.' },
+      { id:'o2', dim:'O', text:'Routine bores me faster than it bores most people.' },
+      { id:'o3', dim:'O', text:'I would rather improvise a trip than plan it.' },
+      { id:'o4', dim:'O', text:'I lose track of time in a gallery or a bookshop.' },
+      { id:'c1', dim:'C', text:'I finish the things I start.' },
+      { id:'c2', dim:'C', text:'People rely on me to be on time.' },
+      { id:'c3', dim:'C', text:'I keep a list somewhere, always.' },
+      { id:'c4', dim:'C', text:'I leave packing for the last hour.', rev:true },
+      { id:'e1', dim:'E', text:'I start conversations with strangers.' },
+      { id:'e2', dim:'E', text:'A party leaves me more energised than tired.' },
+      { id:'e3', dim:'E', text:'I would rather text than call.', rev:true },
+      { id:'e4', dim:'E', text:'I think out loud, mostly.' },
+      { id:'a1', dim:'A', text:'I would rather adjust than win the argument.' },
+      { id:'a2', dim:'A', text:'I notice who has been left out of the group.' },
+      { id:'a3', dim:'A', text:'I say the hard thing even when it costs me.', rev:true },
+      { id:'a4', dim:'A', text:'I forgive quickly.' },
+      { id:'n1', dim:'N', text:'I replay awkward moments for days.', rev:true },
+      { id:'n2', dim:'N', text:'A small setback can derail my whole day.', rev:true },
+      { id:'n3', dim:'N', text:'I stay calm when plans collapse.' },
+      { id:'n4', dim:'N', text:'I worry about things before they happen.', rev:true }
     ]
   },
   type: {
-    title: 'Type indicator', blurb: 'Four letters, eight choices. Not MBTI — that is trademarked.', kind: 'choice', weight: 12,
+    title: 'Type indicator', blurb: 'Eight either-ors on the four Jungian axes. Not MBTI — that is trademarked.',
+    kind: 'choice', weight: 8,
     items: [
-      { id: 't1', axis: 'EI', text: 'At a party you…', options: [{ label: 'Work the room', v: 1 }, { label: 'Find one person and stay', v: 0 }] },
-      { id: 't2', axis: 'EI', text: 'You think…', options: [{ label: 'Out loud, with company', v: 1 }, { label: 'In your head, first', v: 0 }] },
-      { id: 't3', axis: 'SN', text: 'You trust…', options: [{ label: 'What you can verify', v: 0 }, { label: 'The pattern you sense', v: 1 }] },
-      { id: 't4', axis: 'SN', text: 'Instructions, ideally…', options: [{ label: 'Step by step', v: 0 }, { label: 'The big picture', v: 1 }] },
-      { id: 't5', axis: 'TF', text: 'Decisions start with…', options: [{ label: 'What is logical', v: 1 }, { label: 'Who it affects', v: 0 }] },
-      { id: 't6', axis: 'TF', text: 'Feedback should be…', options: [{ label: 'Direct', v: 1 }, { label: 'Gentle', v: 0 }] },
-      { id: 't7', axis: 'JP', text: 'Trips should be…', options: [{ label: 'Planned', v: 1 }, { label: 'Improvised', v: 0 }] },
-      { id: 't8', axis: 'JP', text: 'Deadlines get met…', options: [{ label: 'Early', v: 1 }, { label: 'In the last hour', v: 0 }] }
+      { id:'t1', axis:'EI', text:'At a party you…', options:[{label:'Work the room',v:1},{label:'Find one person and stay',v:0}] },
+      { id:'t2', axis:'EI', text:'You think…', options:[{label:'Out loud, with company',v:1},{label:'In your head, first',v:0}] },
+      { id:'t3', axis:'SN', text:'You trust…', options:[{label:'What you can verify',v:0},{label:'The pattern you sense',v:1}] },
+      { id:'t4', axis:'SN', text:'Instructions, ideally…', options:[{label:'Step by step',v:0},{label:'The big picture',v:1}] },
+      { id:'t5', axis:'TF', text:'Decisions start with…', options:[{label:'What is logical',v:1},{label:'Who it affects',v:0}] },
+      { id:'t6', axis:'TF', text:'Feedback should be…', options:[{label:'Direct',v:1},{label:'Gentle',v:0}] },
+      { id:'t7', axis:'JP', text:'Trips should be…', options:[{label:'Planned',v:1},{label:'Improvised',v:0}] },
+      { id:'t8', axis:'JP', text:'Deadlines get met…', options:[{label:'Early',v:1},{label:'In the last hour',v:0}] }
     ]
   },
   attach: {
-    title: 'Attachment style', blurb: 'Nine statements about closeness. Predicts more than personality does.', kind: 'scale', weight: 12,
+    title: 'Attachment style', blurb: 'Twelve statements about closeness. The single best predictor of how a relationship goes.',
+    kind: 'scale', weight: 22,
     items: [
-      { id: 'an1', dim: 'anx', text: 'I worry that people I love will leave.' },
-      { id: 'an2', dim: 'anx', text: 'I need more reassurance than I admit.' },
-      { id: 'an3', dim: 'anx', text: 'Silence from someone I care about makes me panic.' },
-      { id: 'an4', dim: 'anx', text: 'I am comfortable on my own.', rev: true },
-      { id: 'av1', dim: 'avo', text: 'I would rather solve it alone than ask for help.' },
-      { id: 'av2', dim: 'avo', text: 'Getting too close makes me want space.' },
-      { id: 'av3', dim: 'avo', text: 'I keep parts of myself back.' },
-      { id: 'av4', dim: 'avo', text: 'Talking about feelings is easy for me.', rev: true },
-      { id: 'av5', dim: 'avo', text: 'I pull away when someone starts depending on me.' }
-    ]
-  },
-  love: {
-    title: 'Love language', blurb: 'One question, the one that matters.', kind: 'choice', weight: 8,
-    items: [
-      { id: 'love', text: 'You feel most loved when someone…', options: ['Says it out loud', 'Gives you their time', 'Does the thing for you', 'Brings you something', 'Holds you'] }
+      { id:'an1', dim:'anx', text:'I worry that people I love will leave.' },
+      { id:'an2', dim:'anx', text:'I need more reassurance than I admit.' },
+      { id:'an3', dim:'anx', text:'Silence from someone I care about makes me panic.' },
+      { id:'an4', dim:'anx', text:'I am comfortable on my own.', rev:true },
+      { id:'an5', dim:'anx', text:'I check whether they have read the message.' },
+      { id:'an6', dim:'anx', text:'I notice small changes in how someone talks to me.' },
+      { id:'av1', dim:'avo', text:'I would rather solve it alone than ask for help.' },
+      { id:'av2', dim:'avo', text:'Getting too close makes me want space.' },
+      { id:'av3', dim:'avo', text:'I keep parts of myself back.' },
+      { id:'av4', dim:'avo', text:'Talking about feelings is easy for me.', rev:true },
+      { id:'av5', dim:'avo', text:'I pull away when someone starts depending on me.' },
+      { id:'av6', dim:'avo', text:'I would rather not need anyone.', rev:true }
     ]
   },
   enneagram: {
-    title: 'Enneagram', blurb: 'Nine instincts. Rate how much each one is you.', kind: 'scale', weight: 10,
+    title: 'Enneagram', blurb: 'Eighteen statements, two for each of the nine types. Rate how much each one is you.',
+    kind: 'scale', weight: 15,
     items: [
-      { id: 'e1', dim: '1', text: 'I need things done properly or not at all.' },
-      { id: 'e2', dim: '2', text: 'I can tell what people need before they say it.' },
-      { id: 'e3', dim: '3', text: 'I want to be seen doing well.' },
-      { id: 'e4', dim: '4', text: 'I feel things differently from most people.' },
-      { id: 'e5', dim: '5', text: 'I need long stretches alone to think.' },
-      { id: 'e6', dim: '6', text: 'I am usually the one asking what could go wrong.' },
-      { id: 'e7', dim: '7', text: 'I say yes to plans before checking my calendar.' },
-      { id: 'e8', dim: '8', text: 'I would rather be in charge than be surprised.' },
-      { id: 'e9', dim: '9', text: 'I would rather keep the peace than be right.' }
-    ]
-  },
-  disc: {
-    title: 'Social style', blurb: 'How you show up in a room. Eight either-ors.', kind: 'choice', weight: 8,
-    items: [
-      { id: 'd1', text: 'You would rather be…', options: [{ label: 'Direct', v: 'D' }, { label: 'Diplomatic', v: 'S' }] },
-      { id: 'd2', text: 'You lead with…', options: [{ label: 'Results', v: 'D' }, { label: 'People', v: 'I' }] },
-      { id: 'd3', text: 'You are better at…', options: [{ label: 'Starting', v: 'I' }, { label: 'Finishing', v: 'C' }] },
-      { id: 'd4', text: 'You prefer…', options: [{ label: 'Variety', v: 'I' }, { label: 'Stability', v: 'S' }] },
-      { id: 'd5', text: 'You trust…', options: [{ label: 'Speed', v: 'D' }, { label: 'Accuracy', v: 'C' }] },
-      { id: 'd6', text: 'Under pressure you…', options: [{ label: 'Push', v: 'D' }, { label: 'Withdraw', v: 'C' }] },
-      { id: 'd7', text: 'In a group you are…', options: [{ label: 'The one talking', v: 'I' }, { label: 'The one listening', v: 'S' }] },
-      { id: 'd8', text: 'You are happier with…', options: [{ label: 'A plan', v: 'C' }, { label: 'An open day', v: 'I' }] }
-    ]
-  },
-  humour: {
-    title: 'Humour style', blurb: 'What actually makes you laugh.', kind: 'choice', weight: 6,
-    items: [
-      { id: 'h1', text: 'Funniest thing online?', options: [{ label: 'A perfect inside joke with friends', v: 'Affiliative' }, { label: 'Someone failing at something silly', v: 'Aggressive' }, { label: 'A joke at your own expense', v: 'Self-defeating' }, { label: 'Something bleak and true', v: 'Self-enhancing' }] },
-      { id: 'h2', text: 'You break tension by…', options: [{ label: 'Making a joke everyone shares', v: 'Affiliative' }, { label: 'Teasing someone', v: 'Aggressive' }, { label: 'Making fun of yourself', v: 'Self-defeating' }, { label: 'Pointing out the absurdity', v: 'Self-enhancing' }] },
-      { id: 'h3', text: 'Your group chat is mostly…', options: [{ label: 'Memes for each other', v: 'Affiliative' }, { label: 'Roasting each other', v: 'Aggressive' }, { label: 'Self-deprecating', v: 'Self-defeating' }, { label: 'Dark observations', v: 'Self-enhancing' }] },
-      { id: 'h4', text: 'Worst kind of funny?', options: [{ label: 'Excluding jokes', v: 'Affiliative' }, { label: 'Cruel jokes', v: 'Aggressive' }, { label: 'Pity jokes', v: 'Self-defeating' }, { label: 'Smug jokes', v: 'Self-enhancing' }] },
-      { id: 'h5', text: 'You laugh hardest at…', options: [{ label: 'Shared memories', v: 'Affiliative' }, { label: 'A good roast', v: 'Aggressive' }, { label: 'Your own disasters', v: 'Self-defeating' }, { label: 'The state of the world', v: 'Self-enhancing' }] },
-      { id: 'h6', text: 'In a new group you…', options: [{ label: 'Find the shared joke', v: 'Affiliative' }, { label: 'Test the boundaries', v: 'Aggressive' }, { label: 'Play yourself down', v: 'Self-defeating' }, { label: 'Stay wry', v: 'Self-enhancing' }] }
+      { id:'e1a', dim:'1', text:'I notice what is wrong with things before what is right.' },
+      { id:'e1b', dim:'1', text:'I hold myself to a standard I would not ask of anyone else.' },
+      { id:'e2a', dim:'2', text:'I can tell what people need before they say it.' },
+      { id:'e2b', dim:'2', text:'I feel responsible for other people being okay.' },
+      { id:'e3a', dim:'3', text:'I want to be seen doing well.' },
+      { id:'e3b', dim:'3', text:'I measure myself by what I have achieved.' },
+      { id:'e4a', dim:'4', text:'I feel things differently from most people.' },
+      { id:'e4b', dim:'4', text:'I would rather be unusual than comfortable.' },
+      { id:'e5a', dim:'5', text:'I need long stretches alone to think.' },
+      { id:'e5b', dim:'5', text:'I would rather understand a thing than join in.' },
+      { id:'e6a', dim:'6', text:'I am usually the one asking what could go wrong.' },
+      { id:'e6b', dim:'6', text:'I trust people slowly and then completely.' },
+      { id:'e7a', dim:'7', text:'I say yes to plans before checking my calendar.' },
+      { id:'e7b', dim:'7', text:'I would rather keep my options open than commit.' },
+      { id:'e8a', dim:'8', text:'I would rather be in charge than be surprised.' },
+      { id:'e8b', dim:'8', text:'I say the thing everyone is avoiding.' },
+      { id:'e9a', dim:'9', text:'I would rather keep the peace than be right.' },
+      { id:'e9b', dim:'9', text:'I lose track of what I want when others want something.' }
     ]
   },
   conflict: {
-    title: 'Conflict style', blurb: 'What you do when it goes wrong.', kind: 'choice', weight: 8,
+    title: 'Conflict style', blurb: 'Eight situations. What you actually do when it goes wrong.',
+    kind: 'choice', weight: 10,
     items: [
-      { id: 'k1', text: 'In a fight you…', options: [{ label: 'Push to win', v: 'Competing' }, { label: 'Find the middle', v: 'Compromising' }, { label: 'Go quiet', v: 'Avoiding' }, { label: 'Give in', v: 'Accommodating' }, { label: 'Fix the actual problem', v: 'Collaborating' }] },
-      { id: 'k2', text: 'Someone is wrong and angry. You…', options: [{ label: 'Correct them', v: 'Competing' }, { label: 'Split it', v: 'Compromising' }, { label: 'Leave the room', v: 'Avoiding' }, { label: 'Absorb it', v: 'Accommodating' }, { label: 'Ask what they need', v: 'Collaborating' }] },
-      { id: 'k3', text: 'Unspoken tension is…', options: [{ label: 'Something to settle now', v: 'Competing' }, { label: 'Something to manage', v: 'Compromising' }, { label: 'Better left alone', v: 'Avoiding' }, { label: 'Your fault somehow', v: 'Accommodating' }, { label: 'Worth naming', v: 'Collaborating' }] },
-      { id: 'k4', text: 'You apologise…', options: [{ label: 'Rarely, when right', v: 'Competing' }, { label: 'To end it', v: 'Compromising' }, { label: 'By disappearing', v: 'Avoiding' }, { label: 'Immediately', v: 'Accommodating' }, { label: 'With what you understood', v: 'Collaborating' }] },
-      { id: 'k5', text: 'Best outcome of a fight?', options: [{ label: 'You were right', v: 'Competing' }, { label: 'Both gave something', v: 'Compromising' }, { label: 'It blew over', v: 'Avoiding' }, { label: 'They are okay', v: 'Accommodating' }, { label: 'Something changed', v: 'Collaborating' }] },
-      { id: 'k6', text: 'Long silence after a fight means…', options: [{ label: 'They should come to you', v: 'Competing' }, { label: 'Cooling off', v: 'Compromising' }, { label: 'Relief', v: 'Avoiding' }, { label: 'You should fix it', v: 'Accommodating' }, { label: 'Time to talk properly', v: 'Collaborating' }] }
-    ]
-  },
-  chrono: {
-    title: 'Body clock', blurb: 'Three questions. Turns out this one matters.', kind: 'choice', weight: 4,
-    items: [
-      { id: 'ch1', text: 'Your best hours are…', options: ['Early morning', 'Midday', 'Late night'] },
-      { id: 'ch2', text: 'Free Saturday morning, you…', options: ['Up and out by 7', 'Up by 10', 'Asleep till noon'] },
-      { id: 'ch3', text: '2am you are…', options: ['Deep asleep', 'Sometimes up', 'Wide awake'] }
+      { id:'k1', text:'In a fight you…', options:[{label:'Push to win',v:'Competing'},{label:'Find the middle',v:'Compromising'},{label:'Go quiet',v:'Avoiding'},{label:'Give in',v:'Accommodating'},{label:'Fix the actual problem',v:'Collaborating'}] },
+      { id:'k2', text:'Someone is wrong and angry. You…', options:[{label:'Correct them',v:'Competing'},{label:'Split it',v:'Compromising'},{label:'Leave the room',v:'Avoiding'},{label:'Absorb it',v:'Accommodating'},{label:'Ask what they need',v:'Collaborating'}] },
+      { id:'k3', text:'Unspoken tension is…', options:[{label:'Something to settle now',v:'Competing'},{label:'Something to manage',v:'Compromising'},{label:'Better left alone',v:'Avoiding'},{label:'Your fault somehow',v:'Accommodating'},{label:'Worth naming',v:'Collaborating'}] },
+      { id:'k4', text:'You apologise…', options:[{label:'Rarely, when right',v:'Competing'},{label:'To end it',v:'Compromising'},{label:'By disappearing',v:'Avoiding'},{label:'Immediately',v:'Accommodating'},{label:'With what you understood',v:'Collaborating'}] },
+      { id:'k5', text:'Best outcome of a fight?', options:[{label:'You were right',v:'Competing'},{label:'Both gave something',v:'Compromising'},{label:'It blew over',v:'Avoiding'},{label:'They are okay',v:'Accommodating'},{label:'Something changed',v:'Collaborating'}] },
+      { id:'k6', text:'Long silence after a fight means…', options:[{label:'They should come to you',v:'Competing'},{label:'Cooling off',v:'Compromising'},{label:'Relief',v:'Avoiding'},{label:'You should fix it',v:'Accommodating'},{label:'Time to talk properly',v:'Collaborating'}] },
+      { id:'k7', text:'You are blamed for something unfair.', options:[{label:'Defend yourself fully',v:'Competing'},{label:'Negotiate',v:'Compromising'},{label:'Say nothing',v:'Avoiding'},{label:'Apologise anyway',v:'Accommodating'},{label:'Get to the facts together',v:'Collaborating'}] },
+      { id:'k8', text:'After a bad argument you want…', options:[{label:'The last word',v:'Competing'},{label:'A deal',v:'Compromising'},{label:'Distance',v:'Avoiding'},{label:'Peace, at any cost',v:'Accommodating'},{label:'Repair',v:'Collaborating'}] }
     ]
   }
 };
-const TEST_ORDER = ['big5', 'type', 'attach', 'enneagram', 'love', 'disc', 'humour', 'conflict', 'chrono'];
+const TEST_ORDER = ['big5', 'attach', 'enneagram', 'conflict', 'type'];
 
 const publicTests = () => TEST_ORDER.map(id => {
   const t = TESTS[id];
@@ -745,14 +749,32 @@ const TIERS = [
   { name: 'Platinum', min: 800, slots: 10 }
 ];
 const tierOf = score => [...TIERS].reverse().find(t => score >= t.min);
-const EVENTS = { skip: -8, leave: -2, reported: -15, skipped: +2, longChat: +6, fastReply: +3, message: +0.5 };
+/* activity moves the score in fractions, not points — consistency is what counts */
+const EVENTS = { message: 0.02, reply: 0.05, fastReply: 0.05, longChat: 0.2,
+                 leave: -0.1, skip: -0.3, skipped: +0.1, reported: -1 };
 
 function completeness(u) {
   const done = Object.keys(u.results || {}).length;
   return Math.min(1, done / TEST_ORDER.length) * 100 + (u.tob ? 100 : 0);
 }
+/* consistency, not volume: how often you answer, how often a chat goes somewhere,
+   and how long you have been around. Talking a lot gains you almost nothing. */
+function consistency(u) {
+  const st = u.stats || {};
+  // no track record yet means no credit — a new account starts at the base
+  const replyRate = st.received ? Math.min(1, (st.replies || 0) / st.received) : 0;
+  const chats = st.chats || 0;
+  const completion = chats ? Math.min(1, (st.completed || 0) / chats) : 0;
+  const days = Math.max(0, (now() - (u.createdAt || now())) / 86400000);
+  const tenure = Math.min(1, days / 30);
+  return Math.round(120 * (0.45 * replyRate + 0.35 * completion + 0.20 * tenure));
+}
+function penalty(u) {
+  const st = u.stats || {};
+  return Math.min(40, Math.round((st.skips || 0) * 2 + (st.reported || 0) * 8));
+}
 function cibilOf(u) {
-  const base = 300 + Math.round(completeness(u));
+  const base = 300 + Math.round(completeness(u)) + consistency(u) - penalty(u);
   return Math.max(300, Math.min(900, Math.round(base + (u.cibilAdj || 0))));
 }
 const slotsOf = u => tierOf(cibilOf(u)).slots;
@@ -786,68 +808,86 @@ function nakPair(a, b) {
   return 0.5;
 }
 
+/* Rajju and Vedha — the two South Indian rules families actually ask about */
+const RAJJU = {
+  pada: ['Ashwini','Ashlesha','Magha','Jyeshtha','Mula','Revati'],
+  kati: ['Bharani','Pushya','Purva Phalguni','Anuradha','Purva Ashadha','Uttara Bhadrapada'],
+  nabhi: ['Krittika','Punarvasu','Uttara Phalguni','Vishakha','Uttara Ashadha','Purva Bhadrapada'],
+  kantha: ['Rohini','Ardra','Hasta','Swati','Shravana','Shatabhisha'],
+  siro: ['Mrigashira','Chitra','Dhanishta']
+};
+const rajjuOf = nak => Object.keys(RAJJU).find(k => RAJJU[k].includes(nak)) || null;
+const VEDHA = [['Ashwini','Jyeshtha'],['Bharani','Anuradha'],['Krittika','Vishakha'],['Rohini','Swati'],
+  ['Ardra','Shravana'],['Punarvasu','Uttara Ashadha'],['Pushya','Purva Ashadha'],['Ashlesha','Mula'],
+  ['Magha','Revati'],['Purva Phalguni','Uttara Bhadrapada'],['Uttara Phalguni','Purva Bhadrapada'],
+  ['Hasta','Shatabhisha'],['Chitra','Dhanishta']];
+const vedhaOf = (a, b) => VEDHA.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
+
 function pairParams(A, B) {           // A, B = user records
   const ca = A.chart, cb = B.chart;
   const ra = A.results || {}, rb = B.results || {};
   const out = [];
-  const add = (name, group, v) => { if (v != null && !Number.isNaN(v)) out.push({ name, group, v: c01(v) }); };
+  const add = (name, group, v, w = 1) => { if (v != null && !Number.isNaN(v)) out.push({ name, group, v: c01(v), w }); };
 
   /* ---- astrology ---- */
-  add('Vedic sun', 'Astro', signPair(ca.sun.sign, cb.sun.sign));
-  add('Vedic moon', 'Astro', signPair(ca.moon.sign, cb.moon.sign));
+  add('Vedic sun', 'Astro', signPair(ca.sun.sign, cb.sun.sign), 4);
+  add('Vedic moon', 'Astro', signPair(ca.moon.sign, cb.moon.sign), 6);
   if (ca.western && cb.western) {
-    add('Western sun', 'Astro', signPair(ca.western.sun, cb.western.sun));
-    add('Western moon', 'Astro', signPair(ca.western.moon, cb.western.moon));
-    add('Rising sign', 'Astro', signPair(ca.western.lagna, cb.western.lagna));
+    add('Western sun', 'Astro', signPair(ca.western.sun, cb.western.sun), 3);
+    add('Western moon', 'Astro', signPair(ca.western.moon, cb.western.moon), 3);
+    add('Rising sign', 'Astro', signPair(ca.western.lagna, cb.western.lagna), 2);
   }
-  add('Nakshatra', 'Astro', nakPair(ca, cb));
-  add('Venus', 'Astro', signPair(ca.venus.sign, cb.venus.sign));
-  add('Mars', 'Astro', signPair(ca.mars.sign, cb.mars.sign));
-  add('Element', 'Astro', ca.element === cb.element ? 1 : ELEM_OK[ca.element].includes(cb.element) ? 0.85 : 0.45);
-  add('Modality', 'Astro', ca.modality === cb.modality ? 0.6 : 0.9);
-  if (ca.lagna && cb.lagna) add('Lagna', 'Astro', signPair(ca.lagna.sign, cb.lagna.sign));
+  add('Nakshatra', 'Astro', nakPair(ca, cb), 8);
+  add('Venus', 'Astro', signPair(ca.venus.sign, cb.venus.sign), 3);
+  add('Mars', 'Astro', signPair(ca.mars.sign, cb.mars.sign), 3);
+  add('Element', 'Astro', ca.element === cb.element ? 1 : ELEM_OK[ca.element].includes(cb.element) ? 0.85 : 0.45, 2);
+  add('Modality', 'Astro', ca.modality === cb.modality ? 0.6 : 0.9, 1);
+  if (ca.lagna && cb.lagna) add('Lagna', 'Astro', signPair(ca.lagna.sign, cb.lagna.sign), 4);
   if (ca.manglik && cb.manglik) {
-    const x = ca.manglik.is, y = cb.manglik.is;
-    add('Manglik', 'Astro', x === y ? 1 : 0.45);
+    const both = ca.manglik.is && cb.manglik.is, neither = !ca.manglik.is && !cb.manglik.is;
+    add('Manglik', 'Astro', (both || neither) ? 1 : 0.4, 6);
   }
+  const rjA = rajjuOf(ca.moon.nak), rjB = rajjuOf(cb.moon.nak);
+  if (rjA && rjB) add('Rajju', 'Astro', rjA === rjB ? 0.3 : 1, 5);
+  add('Vedha', 'Astro', vedhaOf(ca.moon.nak, cb.moon.nak) ? 0.3 : 1, 4);
   const male = A.gender === 'Man' ? ca : cb, female = A.gender === 'Man' ? cb : ca;
-  add('Guna milan', 'Astro', astro.ashtakoota(male, female).pct);
+  add('Guna milan', 'Astro', astro.ashtakoota(male, female).pct, 22);
 
   /* ---- numerology ---- */
   const na = ca.numerology, nb = cb.numerology;
-  add('Mulank', 'Numerology', astro.numPair(na.mulank, nb.mulank));
-  add('Bhagyank', 'Numerology', astro.numPair(na.bhagyank, nb.bhagyank));
-  if (na.namank && nb.namank) add('Namank', 'Numerology', astro.numPair(na.namank, nb.namank));
+  add('Mulank', 'Numerology', astro.numPair(na.mulank, nb.mulank), 3);
+  add('Bhagyank', 'Numerology', astro.numPair(na.bhagyank, nb.bhagyank), 3);
+  if (na.namank && nb.namank) add('Namank', 'Numerology', astro.numPair(na.namank, nb.namank), 1);
   const gridA = Object.values(na.counts).filter(x => x > 0).length;
   const gridB = Object.values(nb.counts).filter(x => x > 0).length;
-  add('Lo Shu', 'Numerology', 1 - Math.abs(gridA - gridB) / 9);
+  add('Lo Shu', 'Numerology', 1 - Math.abs(gridA - gridB) / 9, 1);
 
   /* ---- chinese ---- */
-  add('Chinese', 'Chinese', astro.chinesePair(ca.chinese, cb.chinese));
+  add('Chinese', 'Chinese', astro.chinesePair(ca.chinese, cb.chinese), 3);
   if (ca.systems && cb.systems) {
-    add('Mayan tone', 'Other', ca.systems.mayan.tone === cb.systems.mayan.tone ? 1 : 0.5);
-    add('Mayan day', 'Other', ca.systems.mayan.mayan === cb.systems.mayan.mayan ? 1 : 0.55);
-    add('Celtic', 'Other', ca.systems.celtic === cb.systems.celtic ? 1 : 0.55);
-    add('Burmese day', 'Other', ca.systems.burmese === cb.systems.burmese ? 1 : 0.55);
+    add('Mayan tone', 'Other', ca.systems.mayan.tone === cb.systems.mayan.tone ? 1 : 0.5, 0.5);
+    add('Mayan day', 'Other', ca.systems.mayan.mayan === cb.systems.mayan.mayan ? 1 : 0.55, 0.5);
+    add('Celtic', 'Other', ca.systems.celtic === cb.systems.celtic ? 1 : 0.55, 0.5);
+    add('Burmese day', 'Other', ca.systems.burmese === cb.systems.burmese ? 1 : 0.55, 0.5);
   }
 
   /* ---- personality (shared tests only) ---- */
   if (ra.big5 && rb.big5) {
     const da = ra.big5.dims, db2 = rb.big5.dims;
-    for (const k of ['O', 'C', 'E', 'A', 'N']) add('Big Five ' + k, 'Personality', 1 - Math.abs(da[k] - db2[k]));
+    for (const k of ['O', 'C', 'E', 'A', 'N']) add('Big Five ' + k, 'Personality', 1 - Math.abs(da[k] - db2[k]), 4);
   }
   if (ra.type && rb.type) {
     const ta = ra.type.summary.type, tb = rb.type.summary.type;
-    add('Type letters', 'Personality', ta.split('').filter((l, i) => l === tb[i]).length / 4);
+    add('Type letters', 'Personality', ta.split('').filter((l, i) => l === tb[i]).length / 4, 3);
   }
   if (ra.attach && rb.attach) {
     const x = ra.attach.summary, y = rb.attach.summary;
-    add('Attachment', 'Personality', x.style === y.style ? 1 : x.style === 'secure' || y.style === 'secure' ? 0.7 : 0.35);
+    add('Attachment', 'Personality', x.style === y.style ? 1 : x.style === 'secure' || y.style === 'secure' ? 0.7 : 0.35, 12);
   }
   if (ra.enneagram && rb.enneagram) {
     const x = ra.enneagram.summary.ennea, y = rb.enneagram.summary.ennea;
     const wing = (a, b) => Math.abs(a - b) === 1 || Math.abs(a - b) === 8;
-    add('Enneagram', 'Personality', x === y ? 0.9 : wing(x, y) ? 0.8 : [1,4,7].includes(x) === [1,4,7].includes(y) ? 0.6 : 0.45);
+    add('Enneagram', 'Personality', x === y ? 0.9 : wing(x, y) ? 0.8 : [1,4,7].includes(x) === [1,4,7].includes(y) ? 0.6 : 0.45, 5);
   }
   if (ra.love && rb.love) add('Love language', 'Personality', ra.love.summary.love === rb.love.summary.love ? 1 : 0.55);
   if (ra.disc && rb.disc) add('Social style', 'Personality', ra.disc.summary.disc === rb.disc.summary.disc ? 0.85 : 0.6);
@@ -855,7 +895,7 @@ function pairParams(A, B) {           // A, B = user records
   if (ra.conflict && rb.conflict) {
     const x = ra.conflict.summary.conflict, y = rb.conflict.summary.conflict;
     const bad = (p, q) => (p === 'Avoiding' && q === 'Competing') || (q === 'Avoiding' && p === 'Competing');
-    add('Conflict style', 'Personality', x === y ? 0.85 : bad(x, y) ? 0.25 : 0.6);
+    add('Conflict style', 'Personality', x === y ? 0.85 : bad(x, y) ? 0.25 : 0.6, 4);
   }
   if (ra.chrono && rb.chrono) add('Body clock', 'Personality', ra.chrono.summary.chrono === rb.chrono.summary.chrono ? 0.9 : 0.5);
   return out;
@@ -864,13 +904,14 @@ function pairParams(A, B) {           // A, B = user records
 function matchScore(A, B) {
   const params = pairParams(A, B);
   if (!params.length) return { score: 50, params: [], groups: {} };
-  const avg = params.reduce((s, p) => s + p.v, 0) / params.length;
+  const totalW = params.reduce((s, p) => s + p.w, 0) || 1;
+  const avg = params.reduce((s, p) => s + p.v * p.w, 0) / totalW;
   const groups = {};
   for (const p of params) {
-    groups[p.group] = groups[p.group] || { n: 0, sum: 0 };
-    groups[p.group].n++; groups[p.group].sum += p.v;
+    groups[p.group] = groups[p.group] || { n: 0, sum: 0, w: 0 };
+    groups[p.group].n++; groups[p.group].sum += p.v * p.w; groups[p.group].w += p.w;
   }
-  const groupScores = Object.fromEntries(Object.entries(groups).map(([k, g]) => [k, Math.round(g.sum / g.n * 100)]));
+  const groupScores = Object.fromEntries(Object.entries(groups).map(([k, g]) => [k, Math.round(g.sum / g.w * 100)]));
   return { score: Math.round(avg * 100), params, groups: groupScores };
 }
 const band = s => s >= 70 ? 'green' : s >= 45 ? 'yellow' : 'red';
@@ -897,6 +938,8 @@ function sweepQueue() {
   return db.queue.length !== before;
 }
 
+const isBlockedPair = (x, y) => !!x && !!y && (((x.blocked || []).includes(y.id)) || ((y.blocked || []).includes(x.id)));
+
 function tryMatch() {
   sweepQueue();
   const created = [];
@@ -911,6 +954,7 @@ function tryMatch() {
       const e2 = entries[j], u2 = db.users[e2.uid];
       if (!u2 || u2.id === u1.id) continue;
       if (!wants(u1, u2) || !wants(u2, u1)) continue;
+      if (isBlockedPair(u1, u2)) continue;
       // both need a free slot
       const busy = (u, slot) => activeChats(u.id).some(c => c.a.slot === slot || c.b.slot === slot);
       if (busy(u1, e1.slot) || busy(u2, e2.slot)) continue;
@@ -962,9 +1006,11 @@ function chatView(c, me) {
   return {
     id: c.id, score: c.score, band: band(c.score), groups: c.groups,
     startedAt: c.startedAt, endedAt: c.endedAt, endedBy: c.endedBy === me.id ? 'me' : 'them',
-    peer: other ? { name: other.name, status: other.status || '', age: ageOf(other.dob), city: other.city, tier: tierOf(cibilOf(other)).name } : null,
+    peer: other ? { id: other.id, name: other.name, status: other.status || '', age: ageOf(other.dob), city: other.city, tier: tierOf(cibilOf(other)).name } : null,
     messages: c.messages.map(m => ({ from: m.uid === me.id ? 'me' : 'them', text: m.text, at: m.at })),
-    mySlot: c.a.uid === me.id ? c.a.slot : c.b.slot
+    mySlot: c.a.uid === me.id ? c.a.slot : c.b.slot,
+    peerTyping: !!(c.typing && c.typing[otherId] && now() - c.typing[otherId] < 5000),
+    blocked: (me.blocked || []).includes(otherId)
   };
 }
 
@@ -1007,6 +1053,10 @@ function createServer() {
     const url = new URL(req.url, 'http://x');
     const p = url.pathname, method = req.method;
     try {
+      if (method === 'GET' && p === '/geo.json') {
+        return send(res, 200, fs.readFileSync(path.join(__dirname, 'geo.json'), 'utf8'),
+          { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=86400' });
+      }
       if (method === 'GET' && (p === '/' || p === '/index.html')) {
         const a = path.join(__dirname, 'index.html'), b = path.join(PUBLIC_DIR, 'index.html');
         return send(res, 200, fs.readFileSync(fs.existsSync(a) ? a : b, 'utf8'));
@@ -1036,13 +1086,16 @@ function createServer() {
         if (ageOf(dob) < 18) return bad(res, 400, 'You must be 18 or older.');
         if (ageOf(dob) > 100) return bad(res, 400, 'That date does not look right.');
         if (!city) return bad(res, 400, 'Birth place is needed.');
+        const foundPlace = lookupPlace(city);
+        if (!foundPlace) return bad(res, 400, 'We do not recognise that place. Start typing and pick one from the list — the chart needs real coordinates.');
         if (Object.values(db.users).some(u => u.email === email)) return bad(res, 409, 'That email is already registered.');
 
         const code = sixDigits();
         db.pending = db.pending || {};
         db.pending[email] = {
           code, expires: now() + 10 * 60_000, attempts: 0,
-          payload: { password, name, status, gender, pref, dob, tob, city }
+          payload: { password, name, status, gender, pref, dob, tob, city: foundPlace.name,
+                     lat: foundPlace.lat, lon: foundPlace.lon }
         };
         save();
         let mailed;
@@ -1075,7 +1128,7 @@ function createServer() {
           pref: p2.pref, dob: p2.dob, tob: p2.tob, city: p2.city,
           createdAt: now(), lastSeen: now(), results: {}, cibilAdj: 0,
           stats: { chats: 0, messages: 0, skips: 0, leaves: 0, skipped: 0, reported: 0 },
-          chart: astro.chart({ dob: p2.dob, tob: p2.tob, name: p2.name, place: p2.city })
+          chart: astro.chart({ dob: p2.dob, tob: p2.tob, name: p2.name, place: p2.city, lat: p2.lat, lon: p2.lon })
         };
         db.users[user.id] = user;
         delete db.pending[email];
@@ -1145,6 +1198,38 @@ function createServer() {
         });
       }
 
+      if (method === 'POST' && p === '/api/block') {
+        const b = await readBody(req);
+        const target = db.users[String(b.id || '')];
+        if (!target || target.id === me.id) return bad(res, 400, 'No such person.');
+        const on = b.block !== false;
+        me.blocked = me.blocked || [];
+        const at = me.blocked.indexOf(target.id);
+        if (on && at < 0) me.blocked.push(target.id);
+        if (!on && at >= 0) me.blocked.splice(at, 1);
+        if (on) for (const c of Object.values(db.chats)) {
+          const pair = (c.a.uid === me.id && c.b.uid === target.id) || (c.a.uid === target.id && c.b.uid === me.id);
+          if (pair && !c.endedAt) { c.endedAt = now(); c.endedBy = me.id; }
+        }
+        db.queue = db.queue.filter(e => e.uid !== me.id || true);
+        save();
+        return send(res, 200, { blocked: on, count: me.blocked.length });
+      }
+
+      if (method === 'DELETE' && p === '/api/account') {
+        const id = me.id;
+        for (const c of Object.values(db.chats)) {
+          if (c.a.uid === id || c.b.uid === id) delete db.chats[c.id];
+        }
+        db.queue = db.queue.filter(e => e.uid !== id);
+        db.notes = (db.notes || []).filter(n => n.from !== id && n.to !== id);
+        for (const [tok, uid2] of Object.entries(db.tokens)) if (uid2 === id) delete db.tokens[tok];
+        for (const u of Object.values(db.users)) u.blocked = (u.blocked || []).filter(x => x !== id);
+        delete db.users[id];
+        save();
+        return send(res, 200, { deleted: true });
+      }
+
       if (method === 'POST' && p === '/api/profile') {
         const b = await readBody(req);
         let recompute = false;
@@ -1160,10 +1245,17 @@ function createServer() {
           me.tob = /^\d{2}:\d{2}$/.test(b.tob) ? b.tob : '';
           recompute = true;
         }
+        let newPlace = null;
         if (typeof b.city === 'string' && b.city.trim() && b.city.trim() !== me.city) {
-          me.city = b.city.trim().slice(0, 40); recompute = true;
+          const fp = lookupPlace(b.city);
+          if (!fp) return bad(res, 400, 'We do not recognise that place — pick one from the list.');
+          me.city = fp.name; newPlace = fp; recompute = true;
         }
-        if (recompute) me.chart = astro.chart({ dob: me.dob, tob: me.tob, name: me.name, place: me.city });
+        if (recompute) {
+          const fp = newPlace || lookupPlace(me.city);
+          me.chart = astro.chart({ dob: me.dob, tob: me.tob, name: me.name, place: fp ? fp.name : me.city,
+            lat: fp ? fp.lat : undefined, lon: fp ? fp.lon : undefined });
+        }
         save();
         return send(res, 200, { user: publicUser(me), chart: me.chart, cibil: { score: cibilOf(me), tier: tierOf(cibilOf(me)).name, slots: slotsOf(me) } });
       }
@@ -1255,6 +1347,12 @@ function createServer() {
         const otherId = c.a.uid === me.id ? c.b.uid : c.a.uid;
         const other = db.users[otherId];
 
+        if (parts[4] === 'typing') {
+          c.typing = c.typing || {};
+          c.typing[me.id] = now();
+          return send(res, 200, { ok: true });
+        }
+
         if (parts[4] === 'messages' && method === 'POST') {
           if (c.endedAt) return bad(res, 409, 'This chat has ended.');
           if (!rateLimit('msg:' + me.id, 60, 60_000)) return bad(res, 429, 'Slow down.');
@@ -1279,6 +1377,9 @@ function createServer() {
           if (spoke) { bump(me, 'leave'); me.stats.leaves++; }
           else { bump(me, 'skip'); me.stats.skips++; if (other) { bump(other, 'skipped'); other.stats.skipped = (other.stats.skipped || 0) + 1; } }
           const both = c.messages.filter(m => m.uid === c.a.uid).length >= 3 && c.messages.filter(m => m.uid === c.b.uid).length >= 3;
+          if (both) { const A2 = db.users[c.a.uid], B2 = db.users[c.b.uid];
+            if (A2) A2.stats.completed = (A2.stats.completed || 0) + 1;
+            if (B2) B2.stats.completed = (B2.stats.completed || 0) + 1; }
           if (both) { const A = db.users[c.a.uid], B = db.users[c.b.uid]; if (A) bump(A, 'longChat'); if (B) bump(B, 'longChat'); }
           save();
           return send(res, 200, { chat: chatView(c, me), cibil: { score: cibilOf(me), tier: tierOf(cibilOf(me)).name } });
@@ -1297,6 +1398,11 @@ function createServer() {
           save();
           return send(res, 200, { ok: true, suspended: reason === 'underage' });
         }
+      }
+
+      /* ---------- legal ---------- */
+      if (method === 'GET' && ['/terms', '/privacy', '/guidelines'].includes(p)) {
+        return send(res, 200, legalPage(p.slice(1)), { 'Content-Type': 'text/html; charset=utf-8' });
       }
 
       /* ---------- admin ---------- */
@@ -1369,6 +1475,64 @@ function createServer() {
       return bad(res, 500, 'Server error');
     }
   });
+}
+
+function legalPage(kind) {
+  const g = process.env.GRIEVANCE_EMAIL || 'grievance@milaochat.com';
+  const updated = '15 November 2026';
+  const wrap = (title, body) => `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title} · Milao</title>
+<style>body{font:16px/1.65 -apple-system,Segoe UI,Roboto,sans-serif;max-width:640px;margin:0 auto;padding:28px 20px 60px;color:#2B1A1D;background:#FBF2EF}
+h1{font-size:26px;margin:0 0 4px}h2{font-size:16px;margin:26px 0 6px}p,li{color:#4a3538}small{color:#7B5D60}
+a{color:#B0203C}hr{border:0;border-top:1px solid #e6d5d8;margin:26px 0}</style>
+<h1>${title}</h1><small>Last updated ${updated}</small><hr>${body}
+<hr><p><small>Milao is operated from India. Questions and complaints: <a href="mailto:${g}">${g}</a></small></p>`;
+
+  if (kind === 'terms') return wrap('Terms of use', `
+<p>Milao is a service for adults to meet strangers through text conversations. By creating an account you confirm you are 18 or older and that the information you give — including your birth date, time and place — is accurate.</p>
+<h2>What you agree to</h2>
+<ul><li>One account per person. No impersonating anyone.</li>
+<li>No harassment, threats, hate, sexual content involving minors, or attempts to move a conversation somewhere it is not wanted.</li>
+<li>No spam, advertising, or using Milao to sell anything.</li>
+<li>You are responsible for what you send. Screenshots exist; treat the other person as a person.</li></ul>
+<h2>What we do</h2>
+<p>We compute a compatibility score between two people from the information both have given. The score is our opinion, not a prediction, and it carries no guarantee.</p>
+<p>We may suspend or remove an account for breaking these terms, or on a credible report. Reports about someone being under 18 suspend the account until a human reviews it.</p>
+<h2>What we do not promise</h2>
+<p>Milao is provided as it is. We do not vet the identity of users, we do not run background checks, and we cannot guarantee who you are speaking to. Meet strangers carefully.</p>
+<h2>Ending it</h2>
+<p>You can delete your account at any time from your profile. That removes your account, your chats and your messages.</p>`);
+
+  if (kind === 'privacy') return wrap('Privacy', `
+<p>This page says what we hold, why, and what you can ask us to do with it.</p>
+<h2>What we collect</h2>
+<ul><li><b>Email</b> — for signing in and sending you a code. Never shown to other users.</li>
+<li><b>Birth date, time and place</b> — used to compute the astrology parts of your profile. Place is stored as a name and coordinates.</li>
+<li><b>Your test answers and the results</b> — the personality side of your profile.</li>
+<li><b>Messages</b> — stored so both people can see the conversation. They are not end-to-end encrypted.</li>
+<li><b>Activity</b> — when you sign in, whether you reply, reports made about you.</li></ul>
+<h2>What other users see</h2>
+<p>Your chosen name, your status line, your age, your city, and the compatibility score between you and them. Never your email. Never your birth details.</p>
+<h2>How long we keep it</h2>
+<p>While your account exists. Deleting your account deletes your profile, your chats and your messages.</p>
+<h2>Your rights</h2>
+<p>You can ask for a copy of your data, ask us to correct it, or ask us to delete it. Write to the address below and we will respond within 30 days.</p>
+<h2>Who else sees it</h2>
+<p>We use a database host and an email provider to run the service. We do not sell data and we do not run advertising trackers.</p>`);
+
+  return wrap('Community guidelines', `
+<p>Milao only works if strangers can talk without being made to feel unsafe. These are the lines.</p>
+<h2>Not allowed</h2>
+<ul><li>Anyone under 18. If you are under 18, leave.</li>
+<li>Sexual content, requests for it, or pressuring anyone into it.</li>
+<li>Harassment, threats, casteist, communal or sexual slurs.</li>
+<li>Sharing someone's private information, photos or screenshots without consent.</li>
+<li>Impersonation, scams, money requests, advertising.</li></ul>
+<h2>What to do</h2>
+<p>If a conversation goes wrong, leave it — leaving costs you nothing that matters. Report the person from inside the chat. If they are under 18, choose that reason; it suspends the account immediately pending review.</p>
+<p>You can block someone from the chat menu. Blocking stops them being matched with you again.</p>
+<h2>What we act on</h2>
+<p>Reports are reviewed by a human. We look at the conversation, the account's history and how many independent reports exist — a single report does not get someone banned, and repeated reports from the same person do not stack.</p>`);
 }
 
 function adminPage(token) {
