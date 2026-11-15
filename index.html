@@ -325,7 +325,7 @@ function viewHome() {
     </div>` : ''}
     <div class="hd" style="margin:2px 0 10px"><h2>${t('yourslots')}</h2><span class="lbl">${st.queueSize} ${t('waiting')}</span></div>
     <div class="slots">${st.slots.map(slotCard).join('')}</div>
-    <p class="tiny">Tap an empty slot to join the queue — each slot keeps its own place in line. You are matched with whoever has been waiting longest who wants someone like you. Minimise a chat with ⌄ and it keeps running while you use your other slots.</p>`;
+    <p class="tiny">${t('slothelp')}</p>`;
 }
 
 function slotCard(s) {
@@ -526,14 +526,14 @@ function viewProfile() {
     <div class="hd"><h3>${t('personality')}</h3><span class="lbl">${Object.keys(r).length}/${S.tests ? S.tests.length : 5} ${t('testsdone')}</span></div>
     ${Object.keys(b5).length ? ['O','C','E','A','N'].map(k => `<div class="tr"><span>${lbl[k]}</span><span class="bar"><i style="width:${Math.round(b5[k]*100)}%"></i></span><span>${Math.round(b5[k]*100)}</span></div>`).join('') : '<p class="small dim">No personality data yet.</p>'}
     <hr class="sep">
-    ${kvExplain(t('type2'), r.type?.summary?.type, DESCRIBE.type[r.type?.summary?.type])}
-    ${kvExplain(t('attach2'), r.attach ? tv('attach', r.attach.summary.style) : null, DESCRIBE.attach[r.attach?.summary?.style])}
-    ${kvExplain(t('ennea2'), r.enneagram?.summary?.ennea, DESCRIBE.ennea[r.enneagram?.summary?.ennea])}
+    ${kvExplain(t('type2'), r.type?.summary?.type, explain('type', r.type?.summary?.type, DESCRIBE.type[r.type?.summary?.type]))}
+    ${kvExplain(t('attach2'), r.attach ? tv('attach', r.attach.summary.style) : null, explain('attach', r.attach?.summary?.style, DESCRIBE.attach[r.attach?.summary?.style]))}
+    ${kvExplain(t('ennea2'), r.enneagram?.summary?.ennea, explain('ennea', r.enneagram?.summary?.ennea, DESCRIBE.ennea[r.enneagram?.summary?.ennea]))}
 
-    ${kvExplain(t('conflict2'), r.conflict ? tv('conflict', r.conflict.summary.conflict) : null, DESCRIBE.conflict[r.conflict?.summary?.conflict])}
+    ${kvExplain(t('conflict2'), r.conflict ? tv('conflict', r.conflict.summary.conflict) : null, explain('conflict', r.conflict?.summary?.conflict, DESCRIBE.conflict[r.conflict?.summary?.conflict]))}
     ${kvExplain(t('values2'), r.values ? r.values.summary.top.map(v => t('val_' + v)).join(', ') : null,
       r.values ? r.values.summary.top.map(v => t('valm_' + v)).join('  ') : '')}
-    ${kvExplain(t('empathy2'), r.empathy ? tv('empathy', r.empathy.summary.level) : null, DESCRIBE.empathy[r.empathy?.summary?.level])}
+    ${kvExplain(t('empathy2'), r.empathy ? tv('empathy', r.empathy.summary.level) : null, explain('empathy', r.empathy?.summary?.level, DESCRIBE.empathy[r.empathy?.summary?.level]))}
 
   </div>`;
 }
@@ -878,6 +878,7 @@ function translit(s) {
 /* ---------- language ---------- */
 const L = {
   en: {
+    slot:'slot', talking:'talking', newmsg:'new', slothelp:'Tap an empty slot to join the queue — each slot keeps its own place in line. You are matched with whoever has been waiting longest who wants someone like you. Minimise a chat with the arrow and it keeps running while you use your other slots.',
     val_sd:'self-direction',     val_st:'stimulation',     val_he:'pleasure',     val_ac:'achievement',     val_po:'power',     val_se:'security',     val_co:'conformity',     val_tr:'tradition',     val_be:'loyalty',     val_un:'fairness',     valm_sd:'you would rather work it out yourself than be told',     valm_st:'you need new things to stay interested',     valm_he:'you take enjoyment seriously',     valm_ac:'you measure yourself by what you get done',     valm_po:'you want the say, not just the seat',     valm_se:'you want the ground to stop moving',     valm_co:'you keep yourself in check',     valm_tr:'you keep what was handed to you',     valm_be:'your people come before your principles',     valm_un:'you care about strangers as much as your own', 
     computed:'computed', frombirth:'from your birth date',
     openness:'Openness', conscientious:'Conscientious', extraversion:'Extraversion', agreeable:'Agreeable', stability:'Stability',
@@ -907,6 +908,7 @@ const L = {
     lord:'lord', house:'house', pada:'pada', yes:'yes', no:'no', withtime:'with birth time', notime:'no birth time', redo:'redo', testsdone:'tests', typing:'typing…', matchedat:'You matched at', nothingyet:'Nothing has been said yet. Open with something only they could answer.'
   },
   hi: {
+    slot:'स्लॉट', talking:'बातचीत', newmsg:'नया', slothelp:'खाली स्लॉट पर दबाइए और लाइन में लग जाइए — हर स्लॉट की अपनी जगह रहती है। आपकी मुलाक़ात उससे होती है जो सबसे लंबे समय से इंतज़ार कर रहा है और आपके जैसे किसी को चाहता है। चैट को तीर से छोटा कीजिए, वह चलती रहती है।',
     val_sd:'स्वयं की सोच',     val_st:'उत्तेजना',     val_he:'आनंद',     val_ac:'उपलब्धि',     val_po:'अधिकार',     val_se:'सुरक्षा',     val_co:'अनुशासन',     val_tr:'परंपरा',     val_be:'वफ़ादारी',     val_un:'निष्पक्षता',     valm_sd:'आप खुद सोचना पसंद करते हैं, बताया जाना नहीं',     valm_st:'दिलचस्पी बनाए रखने के लिए आपको नई चीज़ें चाहिए',     valm_he:'आप आनंद को गंभीरता से लेते हैं',     valm_ac:'आप खुद को अपने काम से आँकते हैं',     valm_po:'आपको कहने का हक़ चाहिए, सिर्फ़ कुर्सी नहीं',     valm_se:'आप चाहते हैं कि ज़मीन थम जाए',     valm_co:'आप खुद पर काबू रखते हैं',     valm_tr:'जो मिला है उसे आप रखते हैं',     valm_be:'आपके लोग सिद्धांतों से ऊपर हैं',     valm_un:'अजनबियों की परवाह भी उतनी ही', 
     computed:'गणना', frombirth:'आपकी जन्म तिथि से',
     openness:'खुलापन', conscientious:'कर्तव्यनिष्ठा', extraversion:'बहिर्मुखता', agreeable:'सहमत होना', stability:'स्थिरता',
@@ -936,6 +938,7 @@ const L = {
     lord:'स्वामी', house:'भाव', pada:'पाद', yes:'हाँ', no:'नहीं', withtime:'जन्म समय के साथ', notime:'जन्म समय नहीं', redo:'दोबारा', testsdone:'टेस्ट', typing:'लिख रहे हैं…', matchedat:'आपकी मुलाक़ात', nothingyet:'अभी कुछ नहीं कहा गया। ऐसा कुछ पूछिए जिसका जवाब सिर्फ़ वही दे सके।'
   },
   hinglish: {
+    slot:'Slot', talking:'talking', newmsg:'naya', slothelp:'Khaali slot par tap karo aur line mein lag jao — har slot ki apni jagah rehti hai. Aapki match usse hoti hai jo sabse lambe samay se wait kar raha hai. Chat ko arrow se chhota karo, woh chalti rehti hai.',
     val_sd:'khud ki soch',     val_st:'nayi cheezein',     val_he:'aanand',     val_ac:'upalabdhi',     val_po:'adhikaar',     val_se:'suraksha',     val_co:'anushasan',     val_tr:'parampara',     val_be:'wafadari',     val_un:'nishpakshata',     valm_sd:'aap khud sochna pasand karte hain',     valm_st:'dilchaspi ke liye nayi cheezein chahiye',     valm_he:'aap aanand ko seriously lete hain',     valm_ac:'aap khud ko kaam se aankte hain',     valm_po:'aapko kehne ka haq chahiye',     valm_se:'aap chahte hain zameen tham jaye',     valm_co:'aap khud par kaabu rakhte hain',     valm_tr:'jo mila hai use rakhte hain',     valm_be:'aapke log siddhanton se upar hain',     valm_un:'ajnabiyon ki parwah bhi utni hi', 
     computed:'computed', frombirth:'aapki janm tithi se',
     openness:'Openness', conscientious:'Conscientiousness', extraversion:'Extraversion', agreeable:'Agreeableness', stability:'Stability',
@@ -1297,6 +1300,19 @@ async function loadTests() {
     }));
   }
   S.tests = tests;
+  try {
+    const d = await api('/api/descriptions');
+    S.descHi = d.descriptions || {};
+  } catch { S.descHi = {}; }
+}
+
+/* the explanation for a result, in the reader's language */
+function explain(kind, value, fallback) {
+  if (S.lang === 'en' || !S.descHi) return fallback;
+  const m = S.descHi[kind];
+  const t2 = m && value != null ? m[String(value)] : null;
+  if (!t2) return fallback;
+  return S.lang === 'hi' ? t2 : hinglish(t2);
 }
 
 async function boot() {

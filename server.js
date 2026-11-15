@@ -490,6 +490,10 @@ let TESTS_HI = null;
 try { TESTS_HI = JSON.parse(fs.readFileSync(path.join(__dirname, 'tests-hi.json'), 'utf8')); }
 catch { console.error('tests-hi.json missing — Hindi questions unavailable'); }
 
+let DESCRIBE_HI = null;
+try { DESCRIBE_HI = JSON.parse(fs.readFileSync(path.join(__dirname, 'describe-hi.json'), 'utf8')); }
+catch { console.error('describe-hi.json missing'); }
+
 let PLACES = [];
 try { PLACES = JSON.parse(fs.readFileSync(path.join(__dirname, 'geo.json'), 'utf8')); }
 catch { console.error('geo.json missing — place lookup will fail'); }
@@ -1337,6 +1341,9 @@ function createServer() {
         me.lastSeen = now();
       }
 
+      if (method === 'GET' && p === '/api/descriptions') {
+        return send(res, 200, { descriptions: DESCRIBE_HI || {} });
+      }
       if (method === 'GET' && p === '/api/me') {
         return send(res, 200, {
           user: publicUser(me), email: me.email, status: me.status, tob: me.tob || '',
@@ -1581,6 +1588,18 @@ function createServer() {
             store: store.kind
           });
         }
+        if (method === 'GET' && p === '/api/admin/users') {
+          const list = Object.values(db.users)
+            .sort((a, b) => b.createdAt - a.createdAt)
+            .slice(0, 300)
+            .map(u => ({
+              id: u.id, name: u.name, email: u.email, city: u.city,
+              createdAt: u.createdAt, tests: Object.keys(u.results || {}).length,
+              chats: (u.stats || {}).chats || 0, messages: (u.stats || {}).messages || 0,
+              tier: tierOf(cibilOf(u)).name, suspended: !!u.suspended
+            }));
+          return send(res, 200, { users: list, total: Object.keys(db.users).length });
+        }
         if (method === 'GET' && p === '/api/admin/reports') {
           const list = (db.reports || []).slice(-200).reverse().map(r => {
             const from = db.users[r.from], to = db.users[r.to];
@@ -1727,6 +1746,7 @@ button:active{background:var(--teal-soft)}
 ${ok ? `
 <p class="note">Private. This page shows email addresses — do not share the link.</p>
 <div class="grid" id="stats"></div>
+<div class="card"><h2>People</h2><div id="users"></div></div>
 <div class="card"><h2>Reports</h2><div id="reports"></div></div>
 <script>
 const T='${token}';
@@ -1739,6 +1759,14 @@ async function load(){
     const label=k.replace(/([A-Z])/g,' $1').toLowerCase();
     return '<div class="k"><b>'+esc(s[k])+'</b><span>'+label+'</span></div>';
   }).join('');
+  const u=await (await fetch('/api/admin/users?token='+T)).json();
+  document.getElementById('users').innerHTML = u.users.length ? u.users.map(x=>
+    '<div class="rep"><div class="who">'+esc(x.name)+
+    (x.suspended?' <span class="chip red">suspended</span>':'')+'</div>'+
+    '<div class="mail">'+esc(x.email)+'</div>'+
+    '<div class="meta"><span class="chip">'+esc(x.city)+'</span><span class="chip">'+x.tests+'/7 tests</span>'+
+    '<span class="chip">'+esc(x.tier)+'</span><span class="chip">'+ago(x.createdAt)+'</span></div></div>').join('')
+    : '<div class="empty">Nobody has signed up yet.</div>';
   const r=await (await fetch('/api/admin/reports?token='+T)).json();
   document.getElementById('reports').innerHTML = r.reports.length ? r.reports.map(x=>
     '<div class="rep"><div class="who">'+esc(x.to?x.to.name:'unknown')+
