@@ -486,6 +486,10 @@ const REPORT_SUSPEND_AT = 3;
 const VERSION = 'v12';
 
 /* ---------- India place index: 7k towns with real coordinates ---------- */
+let TESTS_HI = null;
+try { TESTS_HI = JSON.parse(fs.readFileSync(path.join(__dirname, 'tests-hi.json'), 'utf8')); }
+catch { console.error('tests-hi.json missing — Hindi questions unavailable'); }
+
 let PLACES = [];
 try { PLACES = JSON.parse(fs.readFileSync(path.join(__dirname, 'geo.json'), 'utf8')); }
 catch { console.error('geo.json missing — place lookup will fail'); }
@@ -731,12 +735,21 @@ const TESTS = {
 };
 const TEST_ORDER = ['big5', 'attach', 'values', 'empathy', 'enneagram', 'conflict', 'type'];
 
-const publicTests = () => TEST_ORDER.map(id => {
+const publicTests = (lang) => TEST_ORDER.map(id => {
   const t = TESTS[id];
+  const hi = (lang === 'hi' && TESTS_HI && TESTS_HI[id]) || null;
   return {
-    id, title: t.title, blurb: t.blurb, kind: t.kind, weight: t.weight, count: t.items.length,
+    id, title: hi ? hi.title : t.title, blurb: hi ? hi.blurb : t.blurb,
+    kind: t.kind, weight: t.weight, count: t.items.length,
     scale: t.kind === 'scale' ? SCALE : null,
-    items: t.items.map(it => ({ id: it.id, text: it.text, options: (it.options || []).map(o => (typeof o === 'string' ? o : o.label)) }))
+    items: t.items.map((it, idx) => ({
+      id: it.id,
+      text: hi && hi.items[it.id] ? hi.items[it.id] : it.text,
+      options: (it.options || []).map((o, oi) => {
+        const en = typeof o === 'string' ? o : o.label;
+        return hi && hi.options[it.id] && hi.options[it.id][oi] ? hi.options[it.id][oi] : en;
+      })
+    }))
   };
 });
 
@@ -1388,7 +1401,7 @@ function createServer() {
         return send(res, 200, { user: publicUser(me), chart: me.chart, cibil: { score: cibilOf(me), tier: tierOf(cibilOf(me)).name, slots: slotsOf(me) } });
       }
 
-      if (method === 'GET' && p === '/api/tests') return send(res, 200, { tests: publicTests() });
+      if (method === 'GET' && p === '/api/tests') return send(res, 200, { tests: publicTests(url.searchParams.get('lang')) });
 
       if (method === 'POST' && p.startsWith('/api/tests/')) {
         const id = p.split('/')[3];
