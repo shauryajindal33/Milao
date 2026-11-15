@@ -76,7 +76,10 @@ function moonLongitude(jd) {
 const ELEMENTS = {
   earth:   { a:[1.00000261,0.00000562], e:[0.01671123,-0.00004392], i:[-0.00001531,-0.01294668], L:[100.46457166,35999.37244981], w:[102.93768193,0.32327364],  node:[0,0] },
   venus:   { a:[0.72333566,0.00000390], e:[0.00677672,-0.00004107], i:[3.39467605,-0.00078890],  L:[181.97909950,58517.81538729], w:[131.60246718,0.00268329], node:[76.67984255,-0.27769418] },
-  mars:    { a:[1.52371034,0.00001847], e:[0.09339410,0.00007882],  i:[1.84969142,-0.00813131],  L:[-4.55343205,19140.30268499], w:[-23.94362959,0.44441088], node:[49.55953891,-0.29257343] }
+  mars:    { a:[1.52371034,0.00001847], e:[0.09339410,0.00007882],  i:[1.84969142,-0.00813131],  L:[-4.55343205,19140.30268499], w:[-23.94362959,0.44441088], node:[49.55953891,-0.29257343] },
+  mercury: { a:[0.38709927,0.00000037], e:[0.20563593,0.00001906],  i:[7.00497902,-0.00594749],  L:[252.25032350,149472.67411175], w:[77.45779628,0.16047689],  node:[48.33076593,-0.12534081] },
+  jupiter: { a:[5.20288700,-0.00011607], e:[0.04838624,-0.00013253], i:[1.30439695,-0.00183714], L:[34.39644051,3034.74612775],  w:[14.72847983,0.21252668],  node:[100.47390909,0.20469106] },
+  saturn:  { a:[9.53667594,-0.00125060], e:[0.05386179,-0.00050991], i:[2.48599187,0.00193609],  L:[49.95424423,1222.49362201], w:[92.59887831,-0.41897216], node:[113.66242448,-0.28867794] }
 };
 function heliocentric(el, T) {
   const a = el.a[0] + el.a[1]*T, e = el.e[0] + el.e[1]*T;
@@ -201,6 +204,53 @@ const NAK_LORD = ['Ketu','Venus','Sun','Moon','Mars','Rahu','Jupiter','Saturn','
 const nakshatraOf = sid => Math.floor(norm360(sid) / (360/27));
 const padaOf = sid => Math.floor((norm360(sid) % (360/27)) / (360/108)) + 1;
 
+/* ---------------- partner karakas ---------------- */
+const SEVEN = ['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn'];
+const navamsaSign = lon => Math.floor((((lon % 360) + 360) % 360) / (30 / 9)) % 12;
+function arudhaOf(houseSignIdx, planetSignIdx) {
+  const count = (planetSignIdx - houseSignIdx + 12) % 12;
+  let a = (planetSignIdx + count) % 12;
+  const seventh = (houseSignIdx + 6) % 12;
+  if (a === houseSignIdx || a === seventh) a = (a + 9) % 12;
+  return a;
+}
+function buildKarakas(lon, ascSid) {
+  const signIdx = {};
+  for (const p of SEVEN) signIdx[p] = Math.floor((((lon[p] % 360) + 360) % 360) / 30);
+  const lagnaIdx = Math.floor((((ascSid % 360) + 360) % 360) / 30);
+  const seventhIdx = (lagnaIdx + 6) % 12;
+  const seventhLord = SIGN_LORD[seventhIdx];
+  const lordIdx = signIdx[seventhLord];
+
+  // Darakaraka — the planet with the least degree inside its sign (Jaimini)
+  let dk = null, dkDeg = 99;
+  for (const p of SEVEN) {
+    const deg = (((lon[p] % 360) + 360) % 360) % 30;
+    if (deg < dkDeg) { dkDeg = deg; dk = p; }
+  }
+
+  // Upapada Lagna — the arudha of the 12th house, the classical marriage indicator
+  const twelfthIdx = (lagnaIdx + 11) % 12;
+  const twelfthLord = SIGN_LORD[twelfthIdx];
+  const ulIdx = arudhaOf(twelfthIdx, signIdx[twelfthLord]);
+
+  return {
+    seventh: { sign: SIGNS[seventhIdx], lord: seventhLord },
+    seventhLord: { planet: seventhLord, sign: SIGNS[lordIdx], house: (lordIdx - lagnaIdx + 12) % 12 + 1 },
+    darakaraka: { planet: dk, sign: SIGNS[signIdx[dk]], house: (signIdx[dk] - lagnaIdx + 12) % 12 + 1 },
+    navamsa: {
+      lagna: SIGNS[navamsaSign(ascSid)],
+      moon: SIGNS[navamsaSign(lon.Moon)],
+      seventh: SIGNS[(navamsaSign(ascSid) + 6) % 12]
+    },
+    upapada: { sign: SIGNS[ulIdx], house: (ulIdx - lagnaIdx + 12) % 12 + 1 },
+    venus: SIGNS[signIdx.Venus],
+    jupiter: SIGNS[signIdx.Jupiter],
+    saturn: SIGNS[signIdx.Saturn],
+    mercury: SIGNS[signIdx.Mercury]
+  };
+}
+
 /* ---------------- ashtakoota ---------------- */
 const GANA = { Deva:['Ashwini','Mrigashira','Punarvasu','Pushya','Hasta','Swati','Anuradha','Shravana','Revati'],
   Manushya:['Bharani','Rohini','Ardra','Purva Phalguni','Uttara Phalguni','Purva Ashadha','Uttara Ashadha','Purva Bhadrapada','Uttara Bhadrapada'],
@@ -209,8 +259,36 @@ const NADI = { Adi:['Ashwini','Ardra','Punarvasu','Uttara Phalguni','Hasta','Jye
   Madhya:['Bharani','Mrigashira','Pushya','Purva Phalguni','Chitra','Anuradha','Purva Ashadha','Dhanishta','Uttara Bhadrapada'],
   Antya:['Krittika','Rohini','Ashlesha','Magha','Swati','Vishakha','Uttara Ashadha','Shravana','Revati'] };
 const YONI = ['Horse','Elephant','Sheep','Serpent','Serpent','Dog','Cat','Sheep','Cat','Rat','Rat','Cow','Buffalo','Tiger','Buffalo','Tiger','Deer','Deer','Dog','Monkey','Mongoose','Monkey','Lion','Horse','Lion','Cow','Elephant'];
+/* the classical 14 x 14 yoni table, out of 4 — symmetric, 0 for sworn enemies */
+const YONI_ORDER = ['Horse','Elephant','Sheep','Serpent','Dog','Cat','Rat','Cow','Buffalo','Tiger','Deer','Monkey','Mongoose','Lion'];
+const YONI_ROWS = [
+  [4,2,2,3,2,2,2,1,0,1,3,3,2,1],
+  [2,4,3,3,2,2,2,2,3,1,2,3,2,0],
+  [2,3,4,2,1,2,1,3,3,1,2,0,3,1],
+  [3,3,2,4,2,1,1,1,1,2,2,2,0,2],
+  [2,2,1,2,4,2,1,2,2,1,0,2,1,1],
+  [2,2,2,1,2,4,0,2,2,1,3,3,2,1],
+  [2,2,1,1,1,0,4,2,2,2,2,2,1,2],
+  [1,2,3,1,2,2,2,4,3,0,3,2,2,1],
+  [0,3,3,1,2,2,2,3,4,1,2,2,2,1],
+  [1,1,1,2,1,1,2,0,1,4,1,1,2,1],
+  [3,2,2,2,0,3,2,3,2,1,4,2,2,1],
+  [3,3,0,2,2,3,2,2,2,1,2,4,3,2],
+  [2,2,3,0,1,2,1,2,2,2,2,3,4,2],
+  [1,0,1,2,1,1,2,1,1,1,1,2,2,4]
+];
+const YONI_SCORE = {};
+YONI_ORDER.forEach((r, i) => { YONI_SCORE[r] = {}; YONI_ORDER.forEach((c, j) => { YONI_SCORE[r][c] = YONI_ROWS[i][j]; }); });
 const YONI_ENEMY = [['Horse','Buffalo'],['Elephant','Lion'],['Sheep','Monkey'],['Serpent','Mongoose'],['Dog','Deer'],['Cat','Rat'],['Cow','Tiger']];
 const VASHYA = ['chatushpad','chatushpad','manav','jalachar','vanachar','manav','manav','keeta','manav','jalachar','manav','jalachar'];
+/* the classical five-group vashya table, out of 2 */
+const VASHYA_SCORE = {
+  chatushpad: { chatushpad:2, manav:1,   jalachar:1,   vanachar:0, keeta:1 },
+  manav:      { chatushpad:1, manav:2,   jalachar:0.5, vanachar:0, keeta:1 },
+  jalachar:   { chatushpad:1, manav:0.5, jalachar:2,   vanachar:0.5, keeta:1 },
+  vanachar:   { chatushpad:0, manav:0,   jalachar:0.5, vanachar:2, keeta:0 },
+  keeta:      { chatushpad:1, manav:1,   jalachar:1,   vanachar:0, keeta:2 }
+};
 const VARNA = ['Kshatriya','Vaishya','Shudra','Brahmin','Kshatriya','Vaishya','Shudra','Brahmin','Kshatriya','Vaishya','Shudra','Brahmin'];
 const VARNA_RANK = { Brahmin:4, Kshatriya:3, Vaishya:2, Shudra:1 };
 const LORD_FRIENDS = {
@@ -225,16 +303,27 @@ const LORD_FRIENDS = {
 const rel = (a, b) => a === b ? 'f' : (LORD_FRIENDS[a].f.includes(b) ? 'f' : (LORD_FRIENDS[a].e.includes(b) ? 'e' : 'n'));
 
 function ashtakoota(a, b) {           // a = male chart, b = female chart (by convention)
+  // charts keep the nakshatra under moon; tests may pass a bare {rashi, nak}
+  const nakOf = x => (x.moon && typeof x.moon.nakIndex === 'number') ? x.moon.nakIndex
+    : (typeof x.nak === 'number' ? x.nak : 0);
+  const rashiOf = x => typeof x.rashi === 'number' ? x.rashi
+    : SIGNS.indexOf((x.moon && x.moon.sign) || (x.lagna && x.lagna.sign) || 'Aries');
+  a = { rashi: rashiOf(a), nak: nakOf(a) };
+  b = { rashi: rashiOf(b), nak: nakOf(b) };
   const out = {};
-  out.Varna = VARNA_RANK[VARNA[a.rashi]] >= VARNA_RANK[VARNA[b.rashi]] ? 1 : 0;
+  // Varna and Tara are read in a direction. When the pair has no groom/bride
+  // ordering we take the better of the two directions rather than inventing one.
+  out.Varna = Math.max(
+    VARNA_RANK[VARNA[a.rashi]] >= VARNA_RANK[VARNA[b.rashi]] ? 1 : 0,
+    VARNA_RANK[VARNA[b.rashi]] >= VARNA_RANK[VARNA[a.rashi]] ? 1 : 0
+  );
   const wa = VASHYA[a.rashi], wb = VASHYA[b.rashi];
-  out.Vashya = wa === wb ? 2 : (wa === 'vanachar' || wb === 'vanachar') ? 0.5
-    : ((wa === 'keeta' && wb === 'vanachar') || (wb === 'keeta' && wa === 'vanachar')) ? 0
-    : ((wa === 'manav' && wb === 'jalachar') || (wb === 'manav' && wa === 'jalachar')) ? 1.5 : 1;
+  out.Vashya = VASHYA_SCORE[wa][wb];
   const tara = (from, to) => { const c = ((to - from + 27) % 27) + 1; return [3,5,7].includes(c % 9) ? 0 : 1.5; };
-  out.Tara = tara(b.nak, a.nak) + tara(a.nak, b.nak);
+  out.Tara = Math.max(tara(b.nak, a.nak) + tara(a.nak, b.nak),
+                      tara(a.nak, b.nak) + tara(b.nak, a.nak));
   const ya = YONI[a.nak], yb = YONI[b.nak];
-  out.Yoni = ya === yb ? 4 : (YONI_ENEMY.some(([x, y]) => (x === ya && y === yb) || (x === yb && y === ya)) ? 0 : 2);
+  out.Yoni = YONI_SCORE[ya][yb];
   const la = SIGN_LORD[a.rashi], lb = SIGN_LORD[b.rashi];
   if (la === lb) out['Graha Maitri'] = 5;
   else {
@@ -243,7 +332,7 @@ function ashtakoota(a, b) {           // a = male chart, b = female chart (by co
   }
   const ga = Object.keys(GANA).find(k => GANA[k].includes(NAK[a.nak]));
   const gb = Object.keys(GANA).find(k => GANA[k].includes(NAK[b.nak]));
-  out.Gana = ga === gb ? 6 : (new Set([ga, gb]).has('Rakshasa') ? (new Set([ga, gb]).has('Deva') ? 1 : 0) : 5);
+  out.Gana = ga === gb ? 6 : (new Set([ga, gb]).has('Rakshasa') ? 0 : 5);
   const d1 = ((a.rashi - b.rashi + 12) % 12) + 1, d2 = ((b.rashi - a.rashi + 12) % 12) + 1;
   out.Bhakoot = ['2-12','5-9','6-8'].includes([d1, d2].sort((x, y) => x - y).join('-')) ? 0 : 7;
   const na = Object.keys(NADI).find(k => NADI[k].includes(NAK[a.nak]));
@@ -298,11 +387,28 @@ function chineseOn(dob, bornAfterCNY) {
     inner: ANIMALS[((year - 4) % 12 + 12) % 12]
   };
 }
-function chinesePair(a, b) {
+const HARM = { Rat:'Goat', Ox:'Horse', Tiger:'Snake', Rabbit:'Dragon', Dragon:'Rabbit', Snake:'Tiger',
+  Horse:'Ox', Goat:'Rat', Monkey:'Pig', Rooster:'Dog', Dog:'Rooster', Pig:'Monkey' };
+const ELEM_CN_FEED = { Wood:'Fire', Fire:'Earth', Earth:'Metal', Metal:'Water', Water:'Wood' };
+const ELEM_CN_CTRL = { Wood:'Earth', Earth:'Water', Water:'Fire', Fire:'Metal', Metal:'Wood' };
+function chinesePair(a, b) {          // kept for compatibility
   if (a.animal === b.animal) return 0.8;
   if (TRINES.some(t => t.includes(a.animal) && t.includes(b.animal))) return 1;
   if (CLASH[a.animal] === b.animal) return 0.15;
   if (a.element === b.element) return 0.7;
+  return 0.55;
+}
+function chineseAnimal(a, b) {
+  if (a.animal === b.animal) return 0.8;
+  if (TRINES.some(t => t.includes(a.animal) && t.includes(b.animal))) return 1;   // the four trines
+  if (CLASH[a.animal] === b.animal) return 0.1;                                    // the six clashes
+  if (HARM[a.animal] === b.animal) return 0.3;                                     // the six harms
+  return 0.55;
+}
+function chineseElement(a, b) {
+  if (a.element === b.element) return 0.75;
+  if (ELEM_CN_FEED[a.element] === b.element || ELEM_CN_FEED[b.element] === a.element) return 1;  // productive cycle
+  if (ELEM_CN_CTRL[a.element] === b.element || ELEM_CN_CTRL[b.element] === a.element) return 0.25; // controlling cycle
   return 0.55;
 }
 
@@ -430,9 +536,16 @@ function chart({ dob, tob, name, place, lat, lon }) {
   const cnJD = chineseNewYear(new Date(Date.UTC(+dob.slice(0, 4), +dob.slice(5, 7) - 1, +dob.slice(8, 10))).getUTCFullYear());
   const bornAfterCNY = jd >= cnJD;
 
+  const longitudes = {
+    Sun: sunSid, Moon: moonSid, Mars: marsSid, Mercury: geoLongitude('mercury', jd) - ay,
+    Jupiter: geoLongitude('jupiter', jd) - ay, Venus: venusSid, Saturn: geoLongitude('saturn', jd) - ay
+  };
+  const karakas = buildKarakas(longitudes, ascSid);
+
   return {
     dob, tob: tob || '',
     hasTime,
+    karakas,
     western: {
       sun: SIGNS[signOf(sunLongitude(jd))],
       moon: SIGNS[signOf(moonLongitude(jd))],
@@ -469,7 +582,7 @@ function chart({ dob, tob, name, place, lat, lon }) {
 }
 
 
-  return { chart, ashtakoota, placeOf, CITIES, tzolkin, celtic, burmese, thirteenSign, chineseNewYear, numerology, numPair, chineseOn, chinesePair, julianDay, jdFromLocal, moonLongitude, sunLongitude, geoLongitude, SIGNS, NAK, SIGN_LORD, ELEMENT, MODALITY, PLANET_OF, ANIMALS, ELEMENTS_CN };
+  return { chart, ashtakoota, rel, LORD_FRIENDS, SIGN_LORD, SIGNS, placeOf, CITIES, tzolkin, celtic, burmese, thirteenSign, chineseNewYear, numerology, numPair, chineseOn, chinesePair, chineseAnimal, chineseElement, julianDay, jdFromLocal, moonLongitude, sunLongitude, geoLongitude, SIGNS, NAK, SIGN_LORD, ELEMENT, MODALITY, PLANET_OF, ANIMALS, ELEMENTS_CN };
 })();
 
 
@@ -483,7 +596,7 @@ const PRESENCE_MS = 25_000;
    itself pending a human look. Three is low enough to catch a problem early
    and high enough that one annoyed person cannot do it alone. */
 const REPORT_SUSPEND_AT = 3;
-const VERSION = 'v12';
+const VERSION = 'v35';
 
 /* ---------- India place index: 7k towns with real coordinates ---------- */
 let TESTS_HI = null;
@@ -809,21 +922,6 @@ function scoreTest(id, answers) {
     return { dims: {}, summary: id === 'love' ? { love: v } : { intent: v } };
   }
 
-  if (id === 'chatstyle') {
-    const ax = { pace: [], length: [] };
-    for (const it of t.items) {
-      const a = Number(answers[it.id]);
-      if (!(a >= 0)) throw new Error('missing: ' + it.id);
-      ax[it.axis].push(it.options[a].v);
-    }
-    const mean = k => ax[k].reduce((a, b) => a + b, 0) / ax[k].length;
-    const pace = mean('pace'), length = mean('length');
-    return { dims: { pace, length }, summary: {
-      pace: pace >= 0.5 ? 'fast' : 'slow',
-      length: length >= 0.5 ? 'long' : 'short'
-    } };
-  }
-
   if (id === 'type') {
     const ax = { EI: [], SN: [], TF: [], JP: [] };
     for (const it of t.items) {
@@ -839,12 +937,6 @@ function scoreTest(id, answers) {
     };
   }
 
-  if (id === 'love') {
-    const a = Number(answers.love);
-    if (!(a >= 0 && a < t.items[0].options.length)) throw new Error('missing: love');
-    return { dims: {}, summary: { love: ['Words','Time','Acts','Gifts','Touch'][a] } };
-  }
-
   if (id === 'disc' || id === 'humour' || id === 'conflict') {
     const tally = {};
     for (const it of t.items) {
@@ -857,15 +949,6 @@ function scoreTest(id, answers) {
     return { dims: {}, summary: { [id === 'disc' ? 'disc' : id === 'humour' ? 'humour' : 'conflict']: best, tally } };
   }
 
-  if (id === 'chrono') {
-    let s = 0;
-    t.items.forEach(it => {
-      const a = Number(answers[it.id]);
-      if (!(a >= 0)) throw new Error('missing: ' + it.id);
-      s += a;
-    });
-    return { dims: {}, summary: { chrono: s <= 1 ? 'Lark' : s <= 3 ? 'Third bird' : 'Owl' } };
-  }
   throw new Error('unknown test');
 }
 
@@ -922,6 +1005,18 @@ const signElem = i => astro.ELEMENT[i % 4];
 const signMod = i => astro.MODALITY[i % 3];
 const signIdx = name => astro.SIGNS.indexOf(name);
 
+function lordFriend(a, b) {
+  if (!a || !b) return null;
+  if (a === b) return 1;
+  const x = astro.rel(a, b), y = astro.rel(b, a);
+  if (x === 'f' && y === 'f') return 1;
+  if (x === 'f' && y === 'n') return 0.85;
+  if (x === 'n' && y === 'n') return 0.7;
+  if (x === 'e' && y === 'e') return 0.1;
+  if (x === 'f' && y === 'e') return 0.35;
+  if (x === 'n' && y === 'e') return 0.4;
+  return 0.55;
+}
 function signPair(aName, bName) {
   const a = signIdx(aName), b = signIdx(bName);
   if (a === b) return 1;
@@ -960,20 +1055,23 @@ function pairParams(A, B) {           // A, B = user records
   const add = (name, group, v, w = 1) => { if (v != null && !Number.isNaN(v)) out.push({ name, group, v: c01(v), w }); };
 
   /* ---- astrology ---- */
+  // the lagna and every house depend on the birth time; without one they are guesses,
+  // so we drop those parameters instead of scoring a chart we do not actually have
+  const timeKnown = ca.hasTime && cb.hasTime;
   add('Vedic sun', 'Astro', signPair(ca.sun.sign, cb.sun.sign), 4);
   add('Vedic moon', 'Astro', signPair(ca.moon.sign, cb.moon.sign), 6);
   if (ca.western && cb.western) {
     add('Western sun', 'Astro', signPair(ca.western.sun, cb.western.sun), 3);
     add('Western moon', 'Astro', signPair(ca.western.moon, cb.western.moon), 3);
-    add('Rising sign', 'Astro', signPair(ca.western.lagna, cb.western.lagna), 2);
+    if (timeKnown) add('Rising sign', 'Astro', signPair(ca.western.lagna, cb.western.lagna), 2);
   }
   add('Nakshatra', 'Astro', nakPair(ca, cb), 8);
   add('Venus', 'Astro', signPair(ca.venus.sign, cb.venus.sign), 3);
   add('Mars', 'Astro', signPair(ca.mars.sign, cb.mars.sign), 3);
   add('Element', 'Astro', ca.element === cb.element ? 1 : ELEM_OK[ca.element].includes(cb.element) ? 0.85 : 0.45, 2);
   add('Modality', 'Astro', ca.modality === cb.modality ? 0.6 : 0.9, 1);
-  if (ca.lagna && cb.lagna) add('Lagna', 'Astro', signPair(ca.lagna.sign, cb.lagna.sign), 4);
-  if (ca.manglik && cb.manglik) {
+  if (ca.lagna && cb.lagna && timeKnown) add('Lagna', 'Astro', signPair(ca.lagna.sign, cb.lagna.sign), 4);
+  if (ca.manglik && cb.manglik && timeKnown) {
     const both = ca.manglik.is && cb.manglik.is, neither = !ca.manglik.is && !cb.manglik.is;
     add('Manglik', 'Astro', (both || neither) ? 1 : 0.4, 6);
   }
@@ -983,22 +1081,51 @@ function pairParams(A, B) {           // A, B = user records
   const male = A.gender === 'Man' ? ca : cb, female = A.gender === 'Man' ? cb : ca;
   add('Guna milan', 'Astro', astro.ashtakoota(male, female).pct, 22);
 
+  /* ---- partner karakas ---- */
+  const ka = ca.karakas, kb = cb.karakas;
+  try {
+  if (ka && kb && timeKnown) {
+    // the 7th house is the house of the partner
+    add('7th house', 'Astro', signPair(ka.seventh.sign, kb.seventh.sign), 5);
+    // the two 7th lords must get along
+    add('7th lord', 'Astro', lordFriend(ka.seventhLord.planet, kb.seventhLord.planet), 4);
+    // Jaimini: your Darakaraka against their lagna and their 7th
+    const dkA = ka.darakaraka.sign, dkB = kb.darakaraka.sign;
+    const hitA = dkA === kb.seventh.sign ? 1 : dkA === cb.lagna.sign ? 0.85 : signPair(dkA, cb.lagna.sign) * 0.7;
+    const hitB = dkB === ka.seventh.sign ? 1 : dkB === ca.lagna.sign ? 0.85 : signPair(dkB, ca.lagna.sign) * 0.7;
+    add('Darakaraka', 'Astro', (hitA + hitB) / 2, 4);
+    // navamsa is the marriage chart
+    add('Navamsa lagna', 'Astro', signPair(ka.navamsa.lagna, kb.navamsa.lagna), 4);
+    add('Navamsa moon', 'Astro', signPair(ka.navamsa.moon, kb.navamsa.moon), 3);
+    // his Venus against her Jupiter, and hers against his — the classical spouse karakas
+    const vjA = signPair(ka.venus, kb.jupiter), vjB = signPair(kb.venus, ka.jupiter);
+    add('Venus · Jupiter', 'Astro', (vjA + vjB) / 2, 4);
+    // Upapada: the marriage indicator should land on the partner's 1st or 7th
+    const ulScore = (ul, other) => {
+      const d = (signIdx(ul) - signIdx(other.lagna.sign) + 12) % 12;
+      return d === 0 ? 1 : d === 6 ? 0.9 : d === 3 || d === 9 ? 0.6 : 0.35;
+    };
+    add('Upapada', 'Astro', (ulScore(ka.upapada.sign, cb) + ulScore(kb.upapada.sign, ca)) / 2, 3);
+  }
+  } catch (e) { console.error('karaka params failed:', e.message); }
+
   /* ---- numerology ---- */
   const na = ca.numerology, nb = cb.numerology;
-  add('Mulank', 'Numerology', astro.numPair(na.mulank, nb.mulank), 3);
-  add('Bhagyank', 'Numerology', astro.numPair(na.bhagyank, nb.bhagyank), 3);
-  if (na.namank && nb.namank) add('Namank', 'Numerology', astro.numPair(na.namank, nb.namank), 1);
+  add('Mulank', 'Numerology', astro.numPair(na.mulank, nb.mulank), 7);
+  add('Bhagyank', 'Numerology', astro.numPair(na.bhagyank, nb.bhagyank), 7);
+  if (na.namank && nb.namank) add('Namank', 'Numerology', astro.numPair(na.namank, nb.namank), 4);
   const gridA = Object.values(na.counts).filter(x => x > 0).length;
   const gridB = Object.values(nb.counts).filter(x => x > 0).length;
-  add('Lo Shu', 'Numerology', 1 - Math.abs(gridA - gridB) / 9, 1);
+  add('Lo Shu', 'Numerology', 1 - Math.abs(gridA - gridB) / 9, 4);
 
   /* ---- chinese ---- */
-  add('Chinese', 'Chinese', astro.chinesePair(ca.chinese, cb.chinese), 3);
+  add('Chinese animal', 'Chinese', astro.chineseAnimal(ca.chinese, cb.chinese), 8);
+  add('Chinese element', 'Chinese', astro.chineseElement(ca.chinese, cb.chinese), 6);
   if (ca.systems && cb.systems) {
-    add('Mayan tone', 'Other', ca.systems.mayan.tone === cb.systems.mayan.tone ? 1 : 0.5, 0.5);
-    add('Mayan day', 'Other', ca.systems.mayan.mayan === cb.systems.mayan.mayan ? 1 : 0.55, 0.5);
-    add('Celtic', 'Other', ca.systems.celtic === cb.systems.celtic ? 1 : 0.55, 0.5);
-    add('Burmese day', 'Other', ca.systems.burmese === cb.systems.burmese ? 1 : 0.55, 0.5);
+    add('Mayan tone', 'Other', ca.systems.mayan.tone === cb.systems.mayan.tone ? 1 : 0.5, 3);
+    add('Mayan day', 'Other', ca.systems.mayan.mayan === cb.systems.mayan.mayan ? 1 : 0.55, 3);
+    add('Celtic', 'Other', ca.systems.celtic === cb.systems.celtic ? 1 : 0.55, 3);
+    add('Burmese day', 'Other', ca.systems.burmese === cb.systems.burmese ? 1 : 0.55, 3);
   }
 
   /* ---- personality (shared tests only) ---- */
@@ -1038,7 +1165,6 @@ function pairParams(A, B) {           // A, B = user records
     const bad = (p, q) => (p === 'Avoiding' && q === 'Competing') || (q === 'Avoiding' && p === 'Competing');
     add('Conflict style', 'Personality', x === y ? 0.85 : bad(x, y) ? 0.25 : 0.6, 4);
   }
-  if (ra.chrono && rb.chrono) add('Body clock', 'Personality', ra.chrono.summary.chrono === rb.chrono.summary.chrono ? 0.9 : 0.5);
   return out;
 }
 
@@ -1148,6 +1274,30 @@ function liveScore(c, me) {
     return m.score;
   } catch { return c.score; }
 }
+function breakdown(c, me) {
+  const otherId = c.a.uid === me.id ? c.b.uid : c.a.uid;
+  const other = db.users[otherId];
+  if (!other) return null;
+  try {
+    const m = matchScore(me, other);
+    const totalW = m.params.reduce((s2, p) => s2 + p.w, 0) || 1;
+    let kootas = null;
+    try {
+      const male = me.gender === 'Man' ? me.chart : other.chart;
+      const female = me.gender === 'Man' ? other.chart : me.chart;
+      const k = astro.ashtakoota(male, female);
+      kootas = { total: k.total, max: k.max, kootas: k.kootas };
+    } catch {}
+    return {
+      score: m.score,
+      groups: m.groups,
+      kootas,
+      params: m.params
+        .map(p => ({ name: p.name, group: p.group, v: Math.round(p.v * 100), w: p.w, share: Math.round(p.w / totalW * 100) }))
+        .sort((x, y) => (y.v * y.w) - (x.v * x.w))
+    };
+  } catch { return null; }
+}
 function chatView(c, me) {
   const otherId = c.a.uid === me.id ? c.b.uid : c.a.uid;
   const other = db.users[otherId];
@@ -1160,6 +1310,7 @@ function chatView(c, me) {
     messages: c.messages.map(m => ({ from: m.uid === me.id ? 'me' : 'them', text: m.text, at: m.at })),
     mySlot: c.a.uid === me.id ? c.a.slot : c.b.slot,
     peerTyping: !!(c.typing && c.typing[otherId] && now() - c.typing[otherId] < 5000),
+    breakdown: breakdown(c, me),
     blocked: (me.blocked || []).includes(otherId)
   };
 }
@@ -1179,7 +1330,13 @@ const bad = (res, code, msg) => send(res, code, { error: msg });
 const readBody = req => new Promise((resolve, reject) => {
   let raw = '';
   req.on('data', c => { raw += c; if (raw.length > 2e6) reject(new Error('too large')); });
-  req.on('end', () => { try { resolve(raw ? JSON.parse(raw) : {}); } catch { reject(new Error('bad json')); } });
+  req.on('end', () => {
+    try {
+      const parsed = raw ? JSON.parse(raw) : {};
+      // a body of "null", "[]" or "3" parses fine but is not an object — normalise it
+      resolve(parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {});
+    } catch { reject(new Error('bad json')); }
+  });
   req.on('error', reject);
 });
 
@@ -1360,6 +1517,14 @@ function createServer() {
         me.lastSeen = now();
       }
 
+      if (method === 'GET' && p === '/api/kootas') {
+        const otherId = url.searchParams.get('with');
+        const other = db.users[otherId];
+        if (!other) return bad(res, 404, 'no such person');
+        const male = me.gender === 'Man' ? me.chart : other.chart;
+        const female = me.gender === 'Man' ? other.chart : me.chart;
+        return send(res, 200, astro.ashtakoota(male, female));
+      }
       if (method === 'GET' && p === '/api/descriptions') {
         return send(res, 200, { descriptions: DESCRIBE_HI || {}, explain: EXPLAIN_HI || {}, means: MEANS_HI || {} });
       }
@@ -1377,7 +1542,8 @@ function createServer() {
         const clean = {};
         for (const k of ['skin','hair','hairColor','eyes','brow','mouth','glasses','hat']) {
           const v = Number(b[k]);
-          if (Number.isInteger(v) && v >= 0 && v < 12) clean[k] = v;
+          if (!Number.isInteger(v) || v < 0 || v > 11) return bad(res, 400, 'Bad avatar value: ' + k);
+          clean[k] = v;
         }
         me.avatar = clean;
         save();
@@ -1827,4 +1993,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { createServer, scoreTest, matchScore, cibilOf, slotsOf, tierOf, TESTS, TEST_ORDER, db: () => db, sweepQueue, tryMatch };
+module.exports = { createServer, scoreTest, matchScore, cibilOf, slotsOf, tierOf, TESTS, TEST_ORDER, db: () => db, sweepQueue, tryMatch, ashtakoota: (...a) => astro.ashtakoota(...a), chartFor: (...a) => astro.chart(...a) };

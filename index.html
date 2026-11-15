@@ -117,6 +117,11 @@ nav button[aria-pressed=true]{color:var(--teal)}
 .avbtn{background:none;border:0;padding:0;line-height:0;cursor:pointer;border-radius:50%}
 .avbtn svg{border-radius:50%;display:block}
 .avempty{width:40px;height:40px;border-radius:50%;background:var(--surface-2);display:grid;place-items:center;color:var(--faint);font-size:18px;border:1px dashed var(--line)}
+.whyrow{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:12px}
+.whyrow span:first-child{flex:0 0 96px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.whybar{flex:1;height:5px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.whybar i{display:block;height:100%;background:var(--teal);border-radius:99px}
+.whyrow b{font-family:var(--mono);font-size:11px;color:var(--dim);width:26px;text-align:right}
 .langpick{display:flex;gap:6px;justify-content:flex-end;margin-bottom:10px}
 .langpick .chip{font-family:var(--mono);font-size:10px;padding:5px 9px}
 .avchip{display:inline-flex;flex:0 0 auto;border-radius:50%;overflow:hidden;line-height:0}
@@ -300,9 +305,9 @@ function viewAuth() {
       <p class="tiny" style="margin:-2px 0 14px">${t('signupnote')} By creating an account you agree to the <a href="/terms" target="_blank">Terms</a> and <a href="/guidelines" target="_blank">guidelines</a>.</p>
       <button class="p w" data-act="signup">${t('create')}</button>
     ` : `
-      <label class="f"><span>email</span><input id="a-email" type="email" placeholder="you@example.com"></label>
+      <label class="f"><span>email</span><input id="l-email" type="email" placeholder="you@example.com"></label>
       <label class="f"><span>password</span>
-        <div class="pw"><input id="a-pass" type="password" placeholder="your password"><button type="button" class="eye" data-act="togglepw" data-target="a-pass" aria-label="show password">
+        <div class="pw"><input id="l-pass" type="password" placeholder="your password"><button type="button" class="eye" data-act="togglepw" data-target="l-pass" aria-label="show password">
             <svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
           </button></div>
       </label>
@@ -396,7 +401,7 @@ function viewTests() {
   return `<h1 style="margin-bottom:4px">Character</h1>
     <p class="dim small" style="margin-bottom:14px">${S.tests ? S.tests.length : 7} ${t('testsblurb2')}</p>
     ${(S.tests || []).map(tt => `<button class="card" style="display:flex;gap:12px;align-items:center;width:100%;text-align:left;cursor:pointer" data-act="opentest" data-id="${tt.id}">
-      <span style="width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:${done.has(tt.id) ? 'var(--teal)' : 'var(--teal-soft)'};color:${done.has(tt.id) ? '#fff' : 'var(--teal)'};font-family:var(--mono);font-size:12px;flex:0 0 auto">${done.has(tt.id) ? '✓' : t.count}</span>
+      <span style="width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:${done.has(tt.id) ? 'var(--teal)' : 'var(--teal-soft)'};color:${done.has(tt.id) ? '#fff' : 'var(--teal)'};font-family:var(--mono);font-size:12px;flex:0 0 auto">${done.has(tt.id) ? '✓' : tt.count}</span>
       <span style="min-width:0;flex:1"><b style="font-size:14.5px">${esc(tt.title)}</b><span class="sub" style="display:block;font-size:11.5px;color:var(--dim);margin-top:2px">${esc(tt.blurb)}</span></span>
       <span class="lbl">${done.has(tt.id) ? t('redo') : tt.weight + '%'}</span>
     </button>`).join('')}`;
@@ -418,15 +423,15 @@ function viewRun() {
     </div>`;
 }
 function viewResult() {
-  const { test: t, result: r, cibil } = S.run;
+  const { test: tk, result: r, cibil } = S.run;
   const s = r.summary || {};
   const bits = [];
-  if (t.id === 'type') bits.push('Type ' + s.type);
-  if (t.id === 'attach') bits.push('Attachment: ' + s.style);
-  if (t.id === 'enneagram') bits.push('Enneagram type ' + s.ennea);
-  if (t.id === 'conflict') bits.push('Conflict: ' + s.conflict);
+  if (tk.id === 'type') bits.push('Type ' + s.type);
+  if (tk.id === 'attach') bits.push('Attachment: ' + s.style);
+  if (tk.id === 'enneagram') bits.push('Enneagram type ' + s.ennea);
+  if (tk.id === 'conflict') bits.push('Conflict: ' + s.conflict);
   return `<div class="card" style="text-align:center;background:var(--teal-soft);border-color:transparent">
-      <p class="lbl" style="color:var(--teal)">${esc(t.title)} · ${t('done')}</p>
+      <p class="lbl" style="color:var(--teal)">${esc(tk.title)} · ${t('done')}</p>
       <h1 style="font-size:34px;margin:8px 0 2px">${esc(bits[0] || 'Added')}</h1>
       <p class="small" style="color:var(--teal)">${t('yourtier')} ${esc(tierName(cibil.tier))} · ${cibil.slots} ${t('slots')}</p>
     </div>
@@ -480,22 +485,22 @@ function viewProfile() {
   <div class="card">
     <div class="hd"><h3>${t('astrology')}</h3><span class="lbl">${c.hasTime ? t('withtime') : t('notime')}</span></div>
     <p class="lbl" style="margin:2px 0 6px">${t('western')}</p>
-    ${kvRow(t('sun'), (esc(tv('sign', c.western.sun))), 'sun', 'sign', c.western.sun)}
-    ${kvRow(t('moon'), (esc(tv('sign', c.western.moon))), 'moon', 'sign', c.western.moon)}
-    ${kvRow(t('rising'), esc(tv('sign', c.western.lagna)), 'lagna', 'sign', c.western.lagna)}
-    ${kvRow(t('venusmars'), esc(tv('sign', c.western.venus)) + ' · ' + esc(tv('sign', c.western.mars)), 'venus', 'sign', c.western.venus)}
+    ${kvRow(t('sun'), (esc(tv('sign', c.western.sun))), 'sun', null, null, planetReading('Sun', c.western.sun, null))}
+    ${kvRow(t('moon'), (esc(tv('sign', c.western.moon))), 'moon', null, null, planetReading('Moon', c.western.moon, null))}
+    ${kvRow(t('rising'), esc(tv('sign', c.western.lagna)), 'lagna', null, null, lagnaReading(c.western.lagna))}
+    ${kvRow(t('venusmars'), esc(tv('sign', c.western.venus)) + ' · ' + esc(tv('sign', c.western.mars)), 'venus', null, null, planetReading('Venus', c.western.venus, null) + ' ' + planetReading('Mars', c.western.mars, null))}
     <hr class="sep">
     <p class="lbl" style="margin:2px 0 6px">${t('vedic')}</p>
     <div class="kv"><span class="dim">${t('birthplace2')}</span><b>${esc(c.place && c.place.name ? c.place.name : 'not recognised')}</b></div>
     <div class="kv"><span class="dim">${t('coordinates')}</span><b>${c.place ? c.place.lat.toFixed(2) + '°N, ' + c.place.lon.toFixed(2) + '°E' : '—'}</b></div>
-    ${kvRow(t('lagna'), (esc(tv('sign', c.lagna.sign))) + ' · ' + (t('lord')) + ' ' + (esc(tv('lord', c.lagna.lord))), 'lagna', 'sign', c.lagna.sign)}
-    ${kvRow(t('sun'), (esc(tv('sign', c.sun.sign))) + ' · ' + (t('house')) + ' ' + (c.sun.house), 'sun', 'sign', c.sun.sign)}
-    ${kvRow(t('moon'), (esc(tv('sign', c.moon.sign))) + ' · ' + (t('house')) + ' ' + (c.moon.house), 'moon', 'sign', c.moon.sign)}
-    ${kvRow(t('nakshatra'), (esc(tv('nak', c.moon.nak))) + ' · ' + (t('pada')) + ' ' + (c.moon.pada), 'nak', 'nak', c.moon.nak)}
-    ${kvRow(t('naklord'), (esc(tv('lord', c.moon.lord))), 'naklord', 'planet', c.moon.lord)}
-    ${kvRow(t('venus'), (esc(tv('sign', c.venus.sign))) + ' · ' + (t('house')) + ' ' + (c.venus.house), 'venus', 'sign', c.venus.sign)}
-    ${kvRow(t('mars'), (esc(tv('sign', c.mars.sign))) + ' · ' + (t('house')) + ' ' + (c.mars.house), 'mars', 'sign', c.mars.sign)}
-    ${kvRow(t('rahuketu'), (esc(tv('sign', c.rahu.sign))) + ' · ' + (esc(tv('sign', c.ketu.sign))), 'rahuketu', null, null, comboText('sign', c.rahu.sign, 'sign', c.ketu.sign))}
+    ${kvRow(t('lagna'), (esc(tv('sign', c.lagna.sign))) + ' · ' + (t('lord')) + ' ' + (esc(tv('lord', c.lagna.lord))), 'lagna', null, null, lagnaReading(c.lagna.sign))}
+    ${kvRow(t('sun'), (esc(tv('sign', c.sun.sign))) + ' · ' + (t('house')) + ' ' + (c.sun.house), 'sun', null, null, planetReading('Sun', c.sun.sign, c.sun.house))}
+    ${kvRow(t('moon'), (esc(tv('sign', c.moon.sign))) + ' · ' + (t('house')) + ' ' + (c.moon.house), 'moon', null, null, planetReading('Moon', c.moon.sign, c.moon.house))}
+    ${kvRow(t('nakshatra'), (esc(tv('nak', c.moon.nak))) + ' · ' + (t('pada')) + ' ' + (c.moon.pada), 'nak', null, null, glue('nak')(part('nak', c.moon.nak), part('pada', c.moon.pada)))}
+    ${kvRow(t('naklord'), (esc(tv('lord', c.moon.lord))), 'naklord', null, null, (S.lang === 'hi' ? 'आपके नक्षत्र का स्वामी ' + tv('lord', c.moon.lord) + ' है — आपके भीतर वह हिस्सा जो ' : S.lang === 'hinglish' ? 'Aapke nakshatra ka swami ' + tv('lord', c.moon.lord) + ' hai — aapke andar woh hissa jo ' : 'Ruled by ' + c.moon.lord + ' — the part of you that is about ') + part('planet', c.moon.lord) + (S.lang === 'en' ? '.' : ''))}
+    ${kvRow(t('venus'), (esc(tv('sign', c.venus.sign))) + ' · ' + (t('house')) + ' ' + (c.venus.house), 'venus', null, null, planetReading('Venus', c.venus.sign, c.venus.house))}
+    ${kvRow(t('mars'), (esc(tv('sign', c.mars.sign))) + ' · ' + (t('house')) + ' ' + (c.mars.house), 'mars', null, null, planetReading('Mars', c.mars.sign, c.mars.house))}
+    ${kvRow(t('rahuketu'), (esc(tv('sign', c.rahu.sign))) + ' · ' + (esc(tv('sign', c.ketu.sign))), 'rahuketu', null, null, nodeReading('Rahu', c.rahu.sign, c.rahu.house) + ' ' + nodeReading('Ketu', c.ketu.sign, c.ketu.house))}
     ${kvRow(t('manglik'), (c.manglik.is ? t('yes') + ' · ' + t('mars') + ' ' + t('house') + ' ' + c.mars.house : t('no')), 'manglik', null, null, manglikText(c.manglik.is, c.mars.house))}
     ${kvRow(t('element'), (esc(tv('element', c.element))) + ' · ' + (esc(tv('modality', c.modality))), 'element')}
     <p class="tiny" style="margin-top:6px">${esc(c.place && c.place.known ? c.place.name : 'place not recognised')} · ${c.place ? c.place.lat.toFixed(2) + '°, ' + c.place.lon.toFixed(2) + '°' : ''}${!c.hasTime ? ' · no birth time, ascendant approximate' : ''}</p>
@@ -506,20 +511,20 @@ function viewProfile() {
   <div class="card">
     <div class="hd"><h3>${t('othersystems')}</h3><span class="lbl">${c.systems ? t('computed') : '—'}</span></div>
     ${c.systems ? `
-    ${kvRow(t('mayan'), esc(c.systems.mayan.mayan) + ' · ' + t('tone') + ' ' + c.systems.mayan.tone, 'mayan', 'day', c.systems.mayan.mayan)}
-    ${kvRow(t('aztec'), esc(c.systems.mayan.aztec), 'aztec', 'day', c.systems.mayan.aztec)}
+    ${kvRow(t('mayan'), esc(c.systems.mayan.mayan) + ' · ' + t('tone') + ' ' + c.systems.mayan.tone, 'mayan', null, null, glue('day')(part('day', c.systems.mayan.mayan), part('tone', c.systems.mayan.tone)))}
+    ${kvRow(t('aztec'), esc(c.systems.mayan.aztec), 'aztec', null, null, glue('day')(part('day', c.systems.mayan.aztec), part('tone', c.systems.mayan.tone)))}
     ${kvRow(t('celtic'), esc(c.systems.celtic), 'celtic', 'tree', c.systems.celtic)}
     ${kvRow(t('burmese'), esc(c.systems.burmese), 'burmese', 'burmese', c.systems.burmese)}
     ${kvRow(t('thirteen'), esc(tv('sign', c.systems.thirteen)), 'thirteen', 'sign', c.systems.thirteen)}` : ''}
-    ${kvRow(t('chinese'), esc(tv('element', c.chinese.element)) + ' ' + esc(c.chinese.animal), 'chinese', 'animal', c.chinese.animal)}
+    ${kvRow(t('chinese'), esc(tv('element', c.chinese.element)) + ' ' + esc(c.chinese.animal), 'chinese', null, null, part('elemmod', c.chinese.element) + ' — ' + part('animal', c.chinese.animal))}
     <p class="tiny" style="margin-top:6px">${t('chinesenote')}</p>
   </div>
 
   <div class="card">
     <div class="hd"><h3>${t('numerology')}</h3><span class="lbl">${t('frombirth')}</span></div>
-    ${kvRow(t('mulank'), (n.mulank), 'mulank', 'number', n.mulank)}
-    ${kvRow(t('bhagyank'), (n.bhagyank), 'bhagyank', 'number', n.bhagyank)}
-    ${n.namank ? kvRow(t('namank'), n.namank, 'namank', 'number', n.namank) : ''}
+    ${kvRow(t('mulank'), (n.mulank), 'mulank', null, null, glue('number')(part('number', n.mulank), t('rolemulank')))}
+    ${kvRow(t('bhagyank'), (n.bhagyank), 'bhagyank', null, null, glue('number')(part('number', n.bhagyank), t('rolebhagyank')))}
+    ${n.namank ? kvRow(t('namank'), n.namank, 'namank', null, null, glue('number')(part('number', n.namank), t('rolenamank'))) : ''}
     ${kvRow(t('loshu'), Object.values(n.counts).filter(x => x > 0).length + '/9', 'loshu', null, null, loshuText(n.counts))}
   </div>
 
@@ -591,6 +596,16 @@ document.addEventListener('click', async (e) => {
       closeSheet(); render(); toast('Avatar saved');
     }); break;
 
+    case 'delaccount': {
+      if (!confirm(t('deleteconfirm'))) break;
+      await guard(async () => {
+        await api('/api/account', { method: 'DELETE' });
+        toast(t('deleted'));
+        logout();
+      });
+      break;
+    }
+
     case 'setlang':
       S.lang = el.dataset.v;
       localStorage.setItem('milao_lang', S.lang);
@@ -645,7 +660,7 @@ document.addEventListener('click', async (e) => {
     }); break;
 
     case 'login': await guard(async () => {
-      const r = await api('/api/login', { method: 'POST', body: { email: $('#a-email').value, password: $('#a-pass').value } });
+      const r = await api('/api/login', { method: 'POST', body: { email: $('#l-email').value, password: $('#l-pass').value } });
       S.token = r.token; localStorage.setItem('milao_token', r.token);
       await boot(); toast('Back in.');
     }); break;
@@ -881,6 +896,11 @@ function translit(s) {
 /* ---------- language ---------- */
 const L = {
   en: {
+    notme:'Not me', exactly:'Exactly', back:'Back', next:'Next', of:'of', ofscore:'of score',
+    deleteconfirm:'Delete your account and everything in it? This cannot be undone.', deleted:'Account deleted',
+    kootas:'guna milan, koota by koota',
+    whyscore:'why this score', whyscorenote:'Each line is one thing you both have. 100 means you agree completely. The heavier the line, the more it moved your number.',
+    rolemulank:'— that is your driver: how you move through things.', rolebhagyank:'— that is your destination: where you keep heading.', rolenamank:'— that is how you are read before you speak.',
     testsblurb2:'Each one feeds the match score and your tier.', mayan:'Mayan (Tzolkin)', aztec:'Aztec (Tonalpohualli)', celtic:'Celtic tree', burmese:'Burmese day', thirteen:'13-sign (real sky)', tone:'tone', whattier:'what is a tier', chinesenote:'Chinese animals follow the actual new-year date, so January births fall in the previous year.',
     seeswomen:'interested in women', seesmen:'interested in men', seesanyone:'interested in anyone',
     tierreach:'Keep replying and finishing tests to reach', toptier:'Top tier. Ten slots.', tierhide:'We do not show the number — only the tier.',
@@ -915,6 +935,10 @@ const L = {
     lord:'lord', house:'house', pada:'pada', yes:'yes', no:'no', withtime:'with birth time', notime:'no birth time', redo:'redo', testsdone:'tests', typing:'typing…', matchedat:'You matched at', nothingyet:'Nothing has been said yet. Open with something only they could answer.'
   },
   hi: {
+    deleteconfirm:'अपना खाता और उसमें सब कुछ हटा दें? इसे वापस नहीं लाया जा सकता।', deleted:'खाता हट गया',
+    kootas:'गुण मिलान, कूट के हिसाब से',
+    whyscore:'यह स्कोर क्यों', whyscorenote:'हर पंक्ति एक ऐसी चीज़ है जो आप दोनों में है। 100 का मतलब पूरा मेल। जितनी भारी पंक्ति, उतना ज़्यादा असर।',
+    rolemulank:'— यही आपका चालक है: आप चीज़ों में कैसे आगे बढ़ते हैं।', rolebhagyank:'— यही आपकी मंज़िल है: जहाँ आप बार-बार पहुँचते हैं।', rolenamank:'— आप बोलने से पहले आपको ऐसे समझा जाता है।',
     notme:'मैं नहीं', exactly:'बिल्कुल', back:'पीछे', next:'अगला', of:'में से', ofscore:'स्कोर का', start:'शुरू करें', redo:'फिर से', seeresult:'नतीजा देखें',
     testsblurb2:'हर एक मैच स्कोर और आपके स्तर को बढ़ाता है।', mayan:'मायन (त्ज़ोल्किन)', aztec:'एज़्टेक (टोनल्पोहवाली)', celtic:'सेल्टिक पेड़', burmese:'बर्मी दिन', thirteen:'13-राशि (असली आकाश)', tone:'टोन', whattier:'स्तर क्या है', chinesenote:'चीनी जानवर असली नए साल की तारीख मानते हैं, इसलिए जनवरी में जन्मे लोग पिछले साल के जानवर में आते हैं।',
     seeswomen:'स्त्रियों में रुचि', seesmen:'पुरुषों में रुचि', seesanyone:'किसी में भी रुचि',
@@ -950,6 +974,10 @@ const L = {
     lord:'स्वामी', house:'भाव', pada:'पाद', yes:'हाँ', no:'नहीं', withtime:'जन्म समय के साथ', notime:'जन्म समय नहीं', redo:'दोबारा', testsdone:'टेस्ट', typing:'लिख रहे हैं…', matchedat:'आपकी मुलाक़ात', nothingyet:'अभी कुछ नहीं कहा गया। ऐसा कुछ पूछिए जिसका जवाब सिर्फ़ वही दे सके।'
   },
   hinglish: {
+    deleteconfirm:'Apna account aur usme sab kuch delete kar dein? Yeh wapas nahi aayega.', deleted:'Account delete ho gaya',
+    kootas:'guna milan, koota ke hisaab se',
+    whyscore:'yeh score kyon', whyscorenote:'Har line ek cheez hai jo aap dono mein hai. 100 matlab poora mel. Jitni bhaari line, utna zyada asar.',
+    rolemulank:'— yahi aapka driver hai: aap cheezon mein kaise aage badhte hain.', rolebhagyank:'— yahi aapki manzil hai: jahan aap baar-baar pahunchte hain.', rolenamank:'— aap bolne se pehle aapko aise samjha jaata hai.',
     notme:'Main nahi', exactly:'Bilkul', back:'Peeche', next:'Aage', of:'me se', ofscore:'score ka', start:'Shuru karo', redo:'Phir se', seeresult:'Nateeja dekho',
     testsblurb2:'Har test match score aur aapke tier ko badhata hai.', mayan:'Mayan (Tzolkin)', aztec:'Aztec (Tonalpohualli)', celtic:'Celtic ped', burmese:'Burmese din', thirteen:'13-rashi (asli aakash)', tone:'tone', whattier:'tier kya hai', chinesenote:'Chinese janwar asli naye saal ki date maante hain, isliye January mein paida hue log pichhle saal ke janwar mein aate hain.',
     seeswomen:'ladkiyon mein interest', seesmen:'ladkon mein interest', seesanyone:'kisi mein bhi interest',
@@ -1306,6 +1334,164 @@ function loshuText(counts) {
     : 'Your grid is missing ' + joined + ' — those are the lessons life will keep handing you until they land.';
 }
 
+
+MEANS.role = {
+  Sun:'sense of self, and what you are here to become',
+  Moon:'moods, and what makes you feel safe',
+  Mars:'how you fight, and what you want',
+  Mercury:'how you think and speak',
+  Jupiter:'where you grow, and what you are given',
+  Venus:'how you love, and what you find beautiful',
+  Saturn:'where you must earn it slowly',
+  Rahu:'what you chase and cannot stop wanting',
+  Ketu:'what you already know and have stopped needing'
+};
+MEANS.style = {
+  Aries:'directly, at speed, without waiting for anyone',
+  Taurus:'slowly, steadily, with your hands',
+  Gemini:'in words, quickly, all at once',
+  Cancer:'through feeling, and through protecting',
+  Leo:'warmly, generously, wanting to be seen',
+  Virgo:'precisely, carefully, by fixing things',
+  Libra:'diplomatically, weighing both sides',
+  Scorpio:'intensely, privately, all or nothing',
+  Sagittarius:'expansively, bluntly, towards the horizon',
+  Capricorn:'patiently, seriously, over years',
+  Aquarius:'at a distance, in principle, for the group',
+  Pisces:'softly, by absorbing, without edges'
+};
+MEANS.arena = {
+  '1':'your body, your manner, the first impression you make',
+  '2':'money, speech, food, and what you consider yours',
+  '3':'siblings, neighbours, short trips, everyday courage',
+  '4':'home, mother, roots, and the place you retreat to',
+  '5':'romance, children, creativity, and play',
+  '6':'work, health, routine, and the things you must fix',
+  '7':'partnership, marriage, and the mirror other people hold up',
+  '8':'intimacy, shared money, loss, and what stays hidden',
+  '9':'belief, travel, teachers, and the meaning you make',
+  '10':'career, reputation, and what you are known for',
+  '11':'friends, networks, and the future you build with others',
+  '12':'solitude, sleep, the unconscious, and what you let go of'
+};
+MEANS.tone = {
+  '1':'the seed, pure and undirected','2':'polarity, where you learn by opposition',
+  '3':'movement, restless and in motion','4':'measure, wanting the edges defined',
+  '5':'power, taking the centre','6':'rhythm, organising the flow',
+  '7':'reflection, looking inward','8':'harmony, wanting things to fit',
+  '9':'intention, acting with purpose','10':'manifestation, making it real',
+  '11':'release, letting it go','12':'understanding, seeing the pattern',
+  '13':'presence, arriving fully'
+};
+MEANS.pada = {
+  '1':'with the push of Aries','2':'with the steadiness of Taurus',
+  '3':'with the curiosity of Gemini','4':'with the softness of Cancer'
+};
+MEANS.elemmod = { Wood:'growing', Fire:'burning', Earth:'settling', Metal:'cutting', Water:'flowing' };
+
+/* ---------- compose a reading from planet × sign × house ---------- */
+function part(kind, v) {
+  if (v == null) return '';
+  const k = String(v);
+  if (S.lang !== 'en') {
+    const m = S.descHi && S.descHi.means && S.descHi.means[kind];
+    const x = m && m[k];
+    if (x) return S.lang === 'hi' ? x : hinglish(x);
+  }
+  return (MEANS[kind] && MEANS[kind][k]) || '';
+}
+function glue(key) {
+  const G = {
+    planet: {
+      en: (r, s, a) => a ? 'In you, ' + r + ' works ' + s + ' — in the area of ' + a + '.' : 'In you, ' + r + ' works ' + s + '.',
+      hi: (r, s, a) => a ? 'आपके भीतर, ' + r + ' ' + s + ' काम करता है — ' + a + ' के क्षेत्र में।' : 'आपके भीतर, ' + r + ' ' + s + ' काम करता है।',
+      hinglish: (r, s, a) => a ? 'Aapke andar, ' + r + ' ' + s + ' kaam karta hai — ' + a + ' ke kshetra mein.' : 'Aapke andar, ' + r + ' ' + s + ' kaam karta hai.'
+    },
+    rising: {
+      en: (s) => 'You come across ' + s + '. That is what people meet before they meet you.',
+      hi: (s) => 'आप ' + s + ' दिखते हैं। लोग आपसे मिलने से पहले यही देखते हैं।',
+      hinglish: (s) => 'Aap ' + s + ' dikhte hain. Log aapse milne se pehle yahi dekhte hain.'
+    },
+    rahu: {
+      en: (s, a) => 'You chase ' + s + ' — in the area of ' + a + '. It never quite fills, and that is the point.',
+      hi: (s, a) => 'आप ' + s + ' के पीछे भागते हैं — ' + a + ' के क्षेत्र में। वह कभी पूरा नहीं होता, और यही बात है।',
+      hinglish: (s, a) => 'Aap ' + s + ' ke peeche bhaagte hain — ' + a + ' ke kshetra mein. Woh kabhi poora nahi hota, aur yahi baat hai.'
+    },
+    ketu: {
+      en: (s, a) => 'You already know ' + s + ' — ' + a + ' is where you have nothing left to prove.',
+      hi: (s, a) => 'आप पहले से जानते हैं ' + s + ' — ' + a + ' वह जगह है जहाँ साबित करने को कुछ नहीं बचा।',
+      hinglish: (s, a) => 'Aap pehle se jaante hain ' + s + ' — ' + a + ' woh jagah hai jahan saabit karne ko kuch nahi bacha.'
+    },
+    nak: {
+      en: (m, p) => m + ' You do all of it ' + p + '.',
+      hi: (m, p) => m + ' आप यह सब ' + p + ' करते हैं।',
+      hinglish: (m, p) => m + ' Aap yeh sab ' + p + ' karte hain.'
+    },
+    day: {
+      en: (m, t) => m + ' Your tone is ' + t + '.',
+      hi: (m, t) => m + ' आपका टोन ' + t + ' है।',
+      hinglish: (m, t) => m + ' Aapka tone ' + t + ' hai.'
+    },
+    number: {
+      en: (m, role) => m + ' ' + role,
+      hi: (m, role) => m + ' ' + role,
+      hinglish: (m, role) => m + ' ' + role
+    }
+  };
+  return G[key][S.lang === 'hi' ? 'hi' : S.lang === 'hinglish' ? 'hinglish' : 'en'];
+}
+const PH = {"Sun": ["You are meant to be seen as yourself; your identity lives in how you show up.", "Your worth is tied to what you own and how you speak.", "You shine through words, siblings, and small daily courage.", "Your centre is home; you build a base before anything else.", "You come alive in play, romance, and making things.", "You find yourself in work, service, and fixing what is broken.", "You discover who you are through partnership.", "You are drawn to what is hidden, shared, and irreversible.", "You are here to make meaning, to travel, and to teach.", "You are meant to be known for the work you do.", "You find yourself in friends, causes, and the future.", "You are meant to let go, withdraw, and work unseen."], "Moon": ["Your feelings sit on your face; people read your mood before you speak.", "You are soothed by security, food, and knowing what is yours.", "You settle by talking, writing, and moving about.", "You need a home that feels like a shell.", "You feel best when you are creating, or in love.", "Worry lives in your routine and in your body.", "You cannot feel something until someone else reflects it back.", "Your emotions run deep and private, and they change you.", "You are calmed by meaning, travel, and belief.", "Your mood is tied to how your work is seen.", "You are steadied by friends and by shared hopes.", "You need solitude before you can feel anything clearly."], "Mars": ["You fight with your whole body and take things head-on.", "You fight over money, words, and what is yours.", "You argue with words, in short sharp exchanges.", "You defend your home and your people.", "You chase what you want with play and appetite.", "You fight through work, discipline, and fixing things.", "You clash in partnership, and you want someone who pushes back.", "Your anger goes deep and stays there.", "You fight for beliefs, and go far to prove them.", "You fight for position, and you are relentless about it.", "You fight for your people and for your causes.", "Your anger turns inward and needs somewhere to go."], "Venus": ["You are liked for how you carry yourself.", "You love through giving, feeding, and spending.", "You love through conversation and wit.", "You love through home, family, and belonging.", "You love through romance, art, and play.", "You love through small daily care.", "You love in partnership, and you love being half of something.", "You love intensely, privately, and all at once.", "You love what is foreign, philosophical, and far.", "You are loved for what you do in the world.", "You love through friendship first.", "You love quietly, and often in secret."], "Rahu": ["You chase a version of yourself you have not met yet.", "You chase money, status, and things that prove you.", "You chase knowledge, contact, and being in the know.", "You chase a home and roots you did not have.", "You chase recognition, and you want to be watched.", "You chase perfection in work and in your body.", "You chase the perfect other person.", "You chase intensity, secrets, and control.", "You chase meaning, and horizons far from home.", "You chase position, and being seen at the top.", "You chase belonging in something bigger than you.", "You chase stillness, and it keeps slipping away."], "Ketu": ["You already know how to be yourself; you just stop caring.", "You are done proving your worth through things.", "You have said enough; words come easily and matter less.", "Home is something you carry, not something you chase.", "You have already played; it no longer excites you.", "You know how to endure, and routine does not frighten you.", "You have learned what partnership costs.", "You already know the dark, and you are not afraid of it.", "You already have faith; you do not need convincing.", "You are not impressed by status.", "You do not need a crowd.", "You are at home in solitude."]};
+const PS = {"Sun": ["You are here to start things and to lead, and you burn bright and fast.", "You build slowly, want to be worth something, and do not move once set.", "You are here to talk, learn and connect; your identity lives in your words.", "You are here to protect and belong; your self is built around your people.", "You are here to be seen, to give warmly, and to be proud of it.", "You are here to be useful and precise; you show love by fixing things.", "You are here for the other person; you find yourself in relation to someone.", "You are here to go deep; you keep your true self hidden.", "You are here for meaning; you need the horizon or you suffocate.", "You are here to build something that outlasts you.", "You are here for the group and the idea, not for the person.", "You are here to dissolve; you feel what others feel and cannot tell where you end."], "Moon": ["You feel fast, and you act on it before you have named it.", "You are soothed by steadiness, food and touch.", "You feel through words, and you need to talk it out.", "You feel everything, and you need a home to do it in.", "You need to be admired before you feel safe.", "You feel calm when things are in order.", "You need company to know what you feel.", "You feel in extremes, and you keep all of it inside.", "You need space to feel free, and you run from anything heavy.", "You keep feelings under control, and it costs you.", "You process feelings at a distance, as ideas.", "You absorb the mood of the room and cannot tell it from your own."], "Mars": ["You go first, fast, and ask afterwards.", "You are slow to anger, and immovable once you are.", "You fight with words, and you can argue any side.", "You fight defensively, for your people and for your shell.", "You fight for pride, and you need to be seen doing it.", "You fight with detail, and you win by being right about it.", "You avoid the fight until it is unavoidable, and then you are fair about it.", "You fight quietly, remember everything, and do not stop.", "You fight for principles, and you say it too bluntly.", "You fight strategically, over years, and you win.", "You fight for the principle, not for the person.", "You fight indirectly, and your anger leaks out sideways."], "Venus": ["You love fast, and you chase the spark.", "You love with the body, with food, and with patience.", "You love with talk, with wit, and with novelty.", "You love by caring and by feeding.", "You love generously, and you want to be adored.", "You love by noticing the small things and fixing them.", "You love partnership itself, and you are good at it.", "You love all or nothing, and you do not share.", "You love freely, and you hate being owned.", "You love seriously, slowly, and for a long time.", "You love as friendship first, and you need your space.", "You love without conditions, and sometimes without boundaries."], "Rahu": ["You chase being the one who acts first.", "You chase security and enough, and enough is never enough.", "You chase information, and being in every conversation.", "You chase belonging, and a home that feels safe.", "You chase recognition and the spotlight.", "You chase flawlessness, and it exhausts you.", "You chase the perfect partner.", "You chase intensity and control.", "You chase truth and the far horizon.", "You chase status and the top of the ladder.", "You chase the future and the group.", "You chase transcendence and escape."], "Ketu": ["You are done with fighting for yourself.", "You are done with proving your worth through things.", "You are done talking; you already know.", "You are done needing a home to feel whole.", "You are done performing.", "You are done perfecting.", "You are done with partnership as a project.", "You are done with the dark.", "You already have faith.", "You are done climbing.", "You are done with the crowd.", "You are already at the edge of dissolving."]};
+
+/* the real interpretive unit: planet in sign, planet in house */
+function phReading(planet, house) {
+  if (!house) return '';
+  const k = planet + ':' + house;
+  if (S.lang !== 'en') {
+    const m = S.descHi && S.descHi.means && S.descHi.means.ph;
+    const v = m && m[k];
+    if (v) return S.lang === 'hi' ? v : hinglish(v);
+  }
+  return (PH[planet] && PH[planet][house - 1]) || '';
+}
+function psReading(planet, sign) {
+  const k = planet + ':' + sign;
+  if (S.lang !== 'en') {
+    const m = S.descHi && S.descHi.means && S.descHi.means.ps;
+    const v = m && m[k];
+    if (v) return S.lang === 'hi' ? v : hinglish(v);
+  }
+  return (PS[planet] && PS[planet][SIGNS.indexOf(sign)]) || '';
+}
+const SIGNS = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+
+function planetReading(planet, sign, house) {
+  const a = psReading(planet, sign), b = phReading(planet, house);
+  if (a || b) return (a + ' ' + b).trim();
+  const r = part('role', planet), s = part('style', sign), ar = house ? part('arena', house) : '';
+  if (!r || !s) return '';
+  return glue('planet')(r, s, ar);
+}
+const LAGNA_EN = {"Aries": "You come across as direct and quick. People meet someone who moves first and asks later, and they read you as confident even when you are not.", "Taurus": "You come across as steady and unhurried. People feel safe with you, and they underestimate how stubborn you are.", "Gemini": "You come across as quick, curious and talkative. People think they know you because you tell them a great deal.", "Cancer": "You come across as gentle and guarded. People want to protect you, and you let them, until you do not.", "Leo": "You come across as warm and confident. You fill a room, and people assume you are never unsure of yourself.", "Virgo": "You come across as careful and understated. People trust you with detail, and they miss how critical you can be.", "Libra": "You come across as charming and fair. People find you easy to be around, and you keep the peace at your own cost.", "Scorpio": "You come across as intense and closed. People feel watched, and they find you magnetic.", "Sagittarius": "You come across as open and restless. People expect you to be blunt, and you rarely disappoint them.", "Capricorn": "You come across as serious, and older than you are. People take you seriously before they know anything about you.", "Aquarius": "You come across as different and slightly detached. People find you interesting and hard to read.", "Pisces": "You come across as soft and accommodating. People project onto you, and you absorb all of it."};
+function lagnaReading(sign) {
+  if (S.lang !== 'en') {
+    const m = S.descHi && S.descHi.means && S.descHi.means.lagna;
+    const v = m && m[sign];
+    if (v) return S.lang === 'hi' ? v : hinglish(v);
+  }
+  return LAGNA_EN[sign] || risingReading(sign);
+}
+
+function risingReading(sign) {
+  const s = part('style', sign);
+  return s ? glue('rising')(s) : '';
+}
+function nodeReading(node, sign, house) {
+  const a = psReading(node, sign), b = phReading(node, house);
+  if (a || b) return (a + ' ' + b).trim();
+  return '';
+}
+
 function meaningOf(kind, value) {
   if (value == null) return '';
   const key = String(value);
@@ -1442,6 +1628,14 @@ function openReport() {
     <h3 style="margin-bottom:10px">${t('chatoptions')}</h3>
     <button class="p w" data-act="leavechat">${t('leavechat')}</button>
     <p class="tiny" style="margin:10px 0 8px">The other person keeps their place.</p>
+    <p class="lbl" style="margin:16px 0 6px">${t('whyscore')}</p>
+    ${((S.chat.breakdown && S.chat.breakdown.params) || []).slice(0, 8).map(p => `
+      <div class="whyrow"><span>${esc(p.name)}</span><span class="whybar"><i style="width:${p.v}%"></i></span><b>${p.v}</b></div>`).join('')}
+    ${S.chat.breakdown && S.chat.breakdown.kootas ? `
+      <p class="lbl" style="margin:14px 0 6px">${t('kootas')} — ${S.chat.breakdown.kootas.total} / 36</p>
+      ${Object.entries(S.chat.breakdown.kootas.kootas).map(([k, v]) => `
+        <div class="whyrow"><span>${esc(k)}</span><span class="whybar"><i style="width:${Math.round(v / S.chat.breakdown.kootas.max[k] * 100)}%"></i></span><b>${v}/${S.chat.breakdown.kootas.max[k]}</b></div>`).join('')}` : ''}
+    <p class="tiny" style="margin:8px 0 14px">${t('whyscorenote')}</p>
     <p class="lbl" style="margin-bottom:6px">${t('report')}</p>
     ${['Rude or abusive', 'Spam or selling', 'Underage', 'Something else'].map(r =>
       `<button class="opt" data-act="report" data-reason="${esc(r.toLowerCase())}">${esc(r)}</button>`).join('')}
@@ -1556,15 +1750,26 @@ function stopChatPoll() { if (S.chatPoll) clearInterval(S.chatPoll); S.chatPoll 
 function scrollMsgs() { const m = $('#msgs'); if (m) m.scrollTop = m.scrollHeight; }
 function logout() { localStorage.removeItem('milao_token'); S.token = null; S.me = null; stopPoll(); render(); }
 
+/* Hinglish blurbs are written by hand — transliteration mangles English terms */
+const HING_BLURBS = {
+  big5:'40 statements. Five-factor model — har serious personality score ki reedh.',
+  attach:'Adult attachment literature ke 18 statements. Rishta kaisa chalega, iska sabse sateek sanket.',
+  values:'Schwartz ke basic values par 20 statements. Jinke values ek jaise hain, unka rishta tikta hai.',
+  empathy:'Doosron ka nazariya samajhne aur parwah karne par 12 statements. Isse tay hota hai baat-cheet garam lagegi ya rookhi.',
+  enneagram:'18 statements, har type ke do. Clinical se zyada popular — hum ise flavour maante hain, diagnosis nahi.',
+  conflict:'8 situations, Thomas-Kilmann framework par. Jab baat bigadti hai to aap asal mein kya karte hain.',
+  type:'Jung ke chaar axis par 8 ya-to-yeh-ya-woh. MBTI nahi — woh trademarked hai — lekin soch wahi hai.'
+};
+
 async function loadTests() {
   const lang = (S.lang === 'hi' || S.lang === 'hinglish') ? 'hi' : 'en';
   let tests = (await api('/api/tests?lang=' + lang)).tests;
   if (S.lang === 'hinglish') {
     const english = (await api('/api/tests?lang=en')).tests;
-    tests = tests.map((t, i) => Object.assign({}, t, {
+    tests = tests.map((tc, i) => Object.assign({}, tc, {
       title: english[i].title,                                   // names stay English
-      blurb: hinglish(t.blurb),                                  // the description is romanised
-      items: t.items.map(it => Object.assign({}, it, {
+      blurb: HING_BLURBS[tc.id] || hinglish(tc.blurb),           // hand-written, not transliterated
+      items: tc.items.map(it => Object.assign({}, it, {
         text: hinglish(it.text),
         options: (it.options || []).map(o => hinglish(o))
       }))
