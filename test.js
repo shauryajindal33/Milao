@@ -176,6 +176,14 @@ const answersFor = id => { const a = {}; for (const it of TESTS[id].items) a[it.
     ok('state carries a compatible count', typeof st3.compatible === 'number', String(st3.compatible));
     ok('the compatible count never exceeds the queue', st3.compatible <= st3.queueSize);
   }
+  // every sheet must offer a way out, and the close guard must not block its own buttons
+  {
+    const fs3 = require('node:fs');
+    const html2 = fs3.readFileSync(require('node:path').join(__dirname, 'index.html'), 'utf8');
+    const sheets = [...html2.matchAll(/\$\('#sheet'\)\.innerHTML = `([\s\S]*?)`;/g)].map(m => m[1]);
+    ok('every sheet has a close button', sheets.length > 0 && sheets.every(s => /data-act="closesheet"/.test(s)), sheets.length + ' sheets');
+    ok('the close guard allows buttons inside the card', /backdropTap/.test(html2));
+  }
   ok('seven tests', TEST_ORDER.length === 7, TEST_ORDER.join(','));
   ok('no preference filters posing as traits', !['intent', 'chatstyle', 'love'].some(t => TEST_ORDER.includes(t)));
   ok('big five is a full instrument', TESTS.big5.items.length === 40);
