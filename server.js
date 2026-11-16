@@ -596,7 +596,7 @@ const PRESENCE_MS = 25_000;
    itself pending a human look. Three is low enough to catch a problem early
    and high enough that one annoyed person cannot do it alone. */
 const REPORT_SUSPEND_AT = 3;
-const VERSION = 'v38';
+const VERSION = 'v39';
 
 /* ---------- India place index: 7k towns with real coordinates ---------- */
 let TESTS_HI = null;

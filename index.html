@@ -896,6 +896,7 @@ function translit(s) {
 /* ---------- language ---------- */
 const L = {
   en: {
+    keepsplace:'The other person keeps their place.', cancel:'Cancel',
     firstinline:'you are first in line', inplace:'#{n} in line', waitingword:'waiting', taptocancel:'tap to cancel', nocompatible:'nobody in the queue is looking for someone like you yet', inqueue:'in the queue', foryou:'open to you',
     notme:'Not me', exactly:'Exactly', back:'Back', next:'Next', of:'of', ofscore:'of score',
     deleteconfirm:'Delete your account and everything in it? This cannot be undone.', deleted:'Account deleted',
@@ -936,6 +937,7 @@ const L = {
     lord:'lord', house:'house', pada:'pada', yes:'yes', no:'no', withtime:'with birth time', notime:'no birth time', redo:'redo', testsdone:'tests', typing:'typing…', matchedat:'You matched at', nothingyet:'Nothing has been said yet. Open with something only they could answer.'
   },
   hi: {
+    keepsplace:'सामने वाले की जगह बनी रहती है।', cancel:'बंद करें',
     firstinline:'आप लाइन में पहले हैं', inplace:'लाइन में #{n}', waitingword:'इंतज़ार', taptocancel:'रद्द करने के लिए दबाएँ', nocompatible:'लाइन में अभी कोई ऐसा नहीं है जो आपके जैसे किसी को चाहता हो', inqueue:'लाइन में', foryou:'आपके लिए खुले',
     deleteconfirm:'अपना खाता और उसमें सब कुछ हटा दें? इसे वापस नहीं लाया जा सकता।', deleted:'खाता हट गया',
     kootas:'गुण मिलान, कूट के हिसाब से',
@@ -976,6 +978,7 @@ const L = {
     lord:'स्वामी', house:'भाव', pada:'पाद', yes:'हाँ', no:'नहीं', withtime:'जन्म समय के साथ', notime:'जन्म समय नहीं', redo:'दोबारा', testsdone:'टेस्ट', typing:'लिख रहे हैं…', matchedat:'आपकी मुलाक़ात', nothingyet:'अभी कुछ नहीं कहा गया। ऐसा कुछ पूछिए जिसका जवाब सिर्फ़ वही दे सके।'
   },
   hinglish: {
+    keepsplace:'Saamne wale ki jagah bani rehti hai.', cancel:'Band karo',
     firstinline:'aap line mein pehle hain', inplace:'line mein #{n}', waitingword:'waiting', taptocancel:'cancel karne ke liye tap karo', nocompatible:'line mein abhi koi aisa nahi hai jo aapke jaise kisi ko chahta ho', inqueue:'line mein', foryou:'aapke liye khule',
     deleteconfirm:'Apna account aur usme sab kuch delete kar dein? Yeh wapas nahi aayega.', deleted:'Account delete ho gaya',
     kootas:'guna milan, koota ke hisaab se',
@@ -1627,22 +1630,30 @@ document.addEventListener('keydown', e => {
 /* ------------------------------ sheets ------------------------------ */
 function closeSheet() { $('#sheet').innerHTML = ''; }
 function openReport() {
+  const bd = S.chat.breakdown;
+  const rows = ((bd && bd.params) || []).slice(0, 8).map(p =>
+    `<div class="whyrow"><span>${esc(p.name)}</span><span class="whybar"><i style="width:${p.v}%"></i></span><b>${p.v}</b></div>`).join('');
+  const kootas = bd && bd.kootas ? `
+    <p class="lbl" style="margin:16px 0 6px">${t('kootas')} — ${bd.kootas.total} / 36</p>
+    ${Object.entries(bd.kootas.kootas).map(([k, v]) =>
+      `<div class="whyrow"><span>${esc(k)}</span><span class="whybar"><i style="width:${Math.round(v / bd.kootas.max[k] * 100)}%"></i></span><b>${v}/${bd.kootas.max[k]}</b></div>`).join('')}` : '';
+
   $('#sheet').innerHTML = `<div class="sheet" data-act="closesheet"><div class="inner">
     <h3 style="margin-bottom:10px">${t('chatoptions')}</h3>
-    <button class="p w" data-act="leavechat">${t('leavechat')}</button>
-    <p class="tiny" style="margin:10px 0 8px">The other person keeps their place.</p>
-    <p class="lbl" style="margin:16px 0 6px">${t('whyscore')}</p>
-    ${((S.chat.breakdown && S.chat.breakdown.params) || []).slice(0, 8).map(p => `
-      <div class="whyrow"><span>${esc(p.name)}</span><span class="whybar"><i style="width:${p.v}%"></i></span><b>${p.v}</b></div>`).join('')}
-    ${S.chat.breakdown && S.chat.breakdown.kootas ? `
-      <p class="lbl" style="margin:14px 0 6px">${t('kootas')} — ${S.chat.breakdown.kootas.total} / 36</p>
-      ${Object.entries(S.chat.breakdown.kootas.kootas).map(([k, v]) => `
-        <div class="whyrow"><span>${esc(k)}</span><span class="whybar"><i style="width:${Math.round(v / S.chat.breakdown.kootas.max[k] * 100)}%"></i></span><b>${v}/${S.chat.breakdown.kootas.max[k]}</b></div>`).join('')}` : ''}
-    <p class="tiny" style="margin:8px 0 14px">${t('whyscorenote')}</p>
-    <p class="lbl" style="margin-bottom:6px">${t('report')}</p>
-    ${['Rude or abusive', 'Spam or selling', 'Underage', 'Something else'].map(r =>
-      `<button class="opt" data-act="report" data-reason="${esc(r.toLowerCase())}">${esc(r)}</button>`).join('')}
-    <button class="ghost w" data-act="closesheet" style="margin-top:4px">Cancel</button>
+    <div class="body">
+      <button class="p w" data-act="leavechat">${t('leavechat')}</button>
+      <p class="tiny" style="margin:10px 0 4px">${t('keepsplace')}</p>
+      <p class="lbl" style="margin:18px 0 6px">${t('whyscore')}</p>
+      ${rows}
+      ${kootas}
+      <p class="tiny" style="margin:10px 0 16px">${t('whyscorenote')}</p>
+      <p class="lbl" style="margin-bottom:6px">${t('report')}</p>
+      ${['Rude or abusive', 'Spam or selling', 'Underage', 'Something else'].map(r =>
+        `<button class="opt" data-act="report" data-reason="${esc(r.toLowerCase())}">${esc(r)}</button>`).join('')}
+    </div>
+    <div class="foot">
+      <button class="ghost w" data-act="closesheet">${t('cancel')}</button>
+    </div>
   </div></div>`;
 }
 function openAvatar() {
