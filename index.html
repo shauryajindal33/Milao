@@ -328,7 +328,7 @@ function viewHome() {
       <p class="small" style="margin-bottom:10px">Every test you finish sharpens the match score and lifts your tier. Finish them to unlock more slots.</p>
       <button class="p w" data-act="tab" data-tab="tests">Continue</button>
     </div>` : ''}
-    <div class="hd" style="margin:2px 0 10px"><h2>${t('yourslots')}</h2><span class="lbl">${st.queueSize} ${t('waiting')}</span></div>
+    <div class="hd" style="margin:2px 0 10px"><h2>${t('yourslots')}</h2><span class="lbl">${st.queueSize} ${t('inqueue')}${st.compatible ? ' · ' + st.compatible + ' ' + t('foryou') : ''}</span></div>
     <div class="slots">${st.slots.map(slotCard).join('')}</div>
     <p class="tiny">${t('slothelp')}</p>`;
 }
@@ -355,7 +355,7 @@ function slotCard(s) {
     return `<button class="slot searching" data-act="unqueue" data-slot="${s.index}">
       <div class="idx">slot ${s.index + 1}</div>
       <div><span class="dot"></span><b style="font-size:13px">${t('searching')}…</b></div>
-      <div class="sub">${s.position ? `queue #${s.position}` : 'waiting'} · tap to cancel</div>
+      <div class="sub">${s.position ? `queue #${s.position}` : t('waitingword')} · ${t('taptocancel')}</div>
     </button>`;
   }
   return `<button class="slot empty" data-act="queue" data-slot="${s.index}">
@@ -896,6 +896,7 @@ function translit(s) {
 /* ---------- language ---------- */
 const L = {
   en: {
+    firstinline:'you are first in line', inplace:'#{n} in line', waitingword:'waiting', taptocancel:'tap to cancel', nocompatible:'nobody in the queue is looking for someone like you yet', inqueue:'in the queue', foryou:'open to you',
     notme:'Not me', exactly:'Exactly', back:'Back', next:'Next', of:'of', ofscore:'of score',
     deleteconfirm:'Delete your account and everything in it? This cannot be undone.', deleted:'Account deleted',
     kootas:'guna milan, koota by koota',
@@ -935,6 +936,7 @@ const L = {
     lord:'lord', house:'house', pada:'pada', yes:'yes', no:'no', withtime:'with birth time', notime:'no birth time', redo:'redo', testsdone:'tests', typing:'typing…', matchedat:'You matched at', nothingyet:'Nothing has been said yet. Open with something only they could answer.'
   },
   hi: {
+    firstinline:'आप लाइन में पहले हैं', inplace:'लाइन में #{n}', waitingword:'इंतज़ार', taptocancel:'रद्द करने के लिए दबाएँ', nocompatible:'लाइन में अभी कोई ऐसा नहीं है जो आपके जैसे किसी को चाहता हो', inqueue:'लाइन में', foryou:'आपके लिए खुले',
     deleteconfirm:'अपना खाता और उसमें सब कुछ हटा दें? इसे वापस नहीं लाया जा सकता।', deleted:'खाता हट गया',
     kootas:'गुण मिलान, कूट के हिसाब से',
     whyscore:'यह स्कोर क्यों', whyscorenote:'हर पंक्ति एक ऐसी चीज़ है जो आप दोनों में है। 100 का मतलब पूरा मेल। जितनी भारी पंक्ति, उतना ज़्यादा असर।',
@@ -974,6 +976,7 @@ const L = {
     lord:'स्वामी', house:'भाव', pada:'पाद', yes:'हाँ', no:'नहीं', withtime:'जन्म समय के साथ', notime:'जन्म समय नहीं', redo:'दोबारा', testsdone:'टेस्ट', typing:'लिख रहे हैं…', matchedat:'आपकी मुलाक़ात', nothingyet:'अभी कुछ नहीं कहा गया। ऐसा कुछ पूछिए जिसका जवाब सिर्फ़ वही दे सके।'
   },
   hinglish: {
+    firstinline:'aap line mein pehle hain', inplace:'line mein #{n}', waitingword:'waiting', taptocancel:'cancel karne ke liye tap karo', nocompatible:'line mein abhi koi aisa nahi hai jo aapke jaise kisi ko chahta ho', inqueue:'line mein', foryou:'aapke liye khule',
     deleteconfirm:'Apna account aur usme sab kuch delete kar dein? Yeh wapas nahi aayega.', deleted:'Account delete ho gaya',
     kootas:'guna milan, koota ke hisaab se',
     whyscore:'yeh score kyon', whyscorenote:'Har line ek cheez hai jo aap dono mein hai. 100 matlab poora mel. Jitni bhaari line, utna zyada asar.',
@@ -1708,7 +1711,7 @@ function openEdit() {
 /* ------------------------------ polling ------------------------------ */
 let lastStateJSON = '';
 let seenChats = null;
-async function refreshState() {
+async function refreshState(opts = {}) {
   try {
     const st = await api('/api/state');
     const json = JSON.stringify(st);
@@ -1726,25 +1729,41 @@ async function refreshState() {
         if (S.tab !== 'home') S.tab = 'home';
       }
     }
-    if (changed) render();
+    if (changed && !opts.quiet) render();
   } catch (err) { if (err.code === 401) logout(); }
 }
 async function refreshMe() { S.me = await api('/api/me'); }
-function startPoll() { stopPoll(); S.poll = setInterval(() => { if (S.token && !S.chat) refreshState(); }, 2200); }
+function startPoll() {
+  stopPoll();
+  S.poll = setInterval(() => {
+    if (!S.token) return;
+    // always refresh the queue; only redraw when no chat is open so typing is never disturbed
+    refreshState({ quiet: !!S.chat });
+  }, 2200);
+}
+/* coming back to the app must show the truth immediately — iOS throttles timers in the background */
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden || !S.token) return;
+  refreshState();
+  if (S.chat) refreshChat();
+});
+window.addEventListener('focus', () => { if (S.token) refreshState(); });
+window.addEventListener('online', () => { if (S.token) refreshState(); });
 function stopPoll() { if (S.poll) clearInterval(S.poll); S.poll = null; }
+async function refreshChat() {
+  if (!S.chat) return;
+  try {
+    const r = await api('/api/chats/' + S.chat.id);
+    if (JSON.stringify(r.chat.messages) !== JSON.stringify(S.chat.messages) ||
+        r.chat.endedAt !== S.chat.endedAt ||
+        !!r.chat.peerTyping !== !!S.chat.peerTyping) {
+      S.chat = r.chat; render(); scrollMsgs();
+    }
+  } catch {}
+}
 function startChatPoll() {
   stopChatPoll();
-  S.chatPoll = setInterval(async () => {
-    if (!S.chat) return stopChatPoll();
-    try {
-      const r = await api('/api/chats/' + S.chat.id);
-      if (JSON.stringify(r.chat.messages) !== JSON.stringify(S.chat.messages) ||
-          r.chat.endedAt !== S.chat.endedAt ||
-          !!r.chat.peerTyping !== !!S.chat.peerTyping) {
-        S.chat = r.chat; render(); scrollMsgs();
-      }
-    } catch {}
-  }, 1600);
+  S.chatPoll = setInterval(refreshChat, 1600);
 }
 function stopChatPoll() { if (S.chatPoll) clearInterval(S.chatPoll); S.chatPoll = null; }
 function scrollMsgs() { const m = $('#msgs'); if (m) m.scrollTop = m.scrollHeight; }

@@ -596,7 +596,7 @@ const PRESENCE_MS = 25_000;
    itself pending a human look. Three is low enough to catch a problem early
    and high enough that one annoyed person cannot do it alone. */
 const REPORT_SUSPEND_AT = 3;
-const VERSION = 'v36';
+const VERSION = 'v38';
 
 /* ---------- India place index: 7k towns with real coordinates ---------- */
 let TESTS_HI = null;
@@ -1661,6 +1661,7 @@ function createServer() {
         return send(res, 200, {
           tier: tierOf(cibilOf(me)).name, cibil: cibilOf(me), slots,
           waiting: queued.length, queueSize: db.queue.length,
+          compatible: waiting.filter(x => x.u.id !== me.id && wants(x.u, me) && wants(me, x.u)).length,
           newChats: chats.filter(c => c.a.uid === me.id || c.b.uid === me.id).map(c => c.id),
           online: Object.values(db.users).filter(u => isOnline(u) && u.id !== me.id).length
         });

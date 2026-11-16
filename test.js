@@ -168,6 +168,14 @@ const answersFor = id => { const a = {}; for (const it of TESTS[id].items) a[it.
       ok('admin list needs the token', true);
     }
   }
+  console.log('\n— the queue numbers mean what they say —');
+  {
+    // two people who do not want each other must not look like they are ahead of each other
+    const st3 = (await api('GET', '/api/state', null, AT)).json;
+    ok('state carries a queue size', typeof st3.queueSize === 'number', String(st3.queueSize));
+    ok('state carries a compatible count', typeof st3.compatible === 'number', String(st3.compatible));
+    ok('the compatible count never exceeds the queue', st3.compatible <= st3.queueSize);
+  }
   ok('seven tests', TEST_ORDER.length === 7, TEST_ORDER.join(','));
   ok('no preference filters posing as traits', !['intent', 'chatstyle', 'love'].some(t => TEST_ORDER.includes(t)));
   ok('big five is a full instrument', TESTS.big5.items.length === 40);
