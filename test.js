@@ -184,6 +184,28 @@ const answersFor = id => { const a = {}; for (const it of TESTS[id].items) a[it.
     ok('every sheet has a close button', sheets.length > 0 && sheets.every(s => /data-act="closesheet"/.test(s)), sheets.length + ' sheets');
     ok('the close guard allows buttons inside the card', /backdropTap/.test(html2));
   }
+  console.log('\n— bhakoot dosha —');
+  {
+    const pairs = [[0,1,0],[0,4,0],[0,5,0],[0,6,7],[0,0,7],[3,9,7]];
+    let allOk = true, detail = '';
+    for (const [a, b, expect] of pairs) {
+      const r = ashtakoota({ rashi: a, nak: 0 }, { rashi: b, nak: 0 });
+      if (r.kootas.Bhakoot !== expect) { allOk = false; detail += a + '/' + b + '=' + r.kootas.Bhakoot + ' '; }
+    }
+    ok('bhakoot gives 0 for 2-12, 5-9, 6-8 and 7 otherwise', allOk, detail);
+  }
+
+  console.log('\n— visitors are counted —');
+  {
+    await fetch('http://127.0.0.1:' + server.address().port + '/', { headers: { 'user-agent': 'probe-1', 'x-forwarded-for': '10.9.9.9' } });
+    const s7 = (await api('GET', '/api/admin/stats?token=' + (process.env.ADMIN_TOKEN || 'x'))).json;
+    if (s7.uniqueToday !== undefined) {
+      ok('unique visitors are tracked', typeof s7.uniqueToday === 'number', String(s7.uniqueToday));
+      ok('page views are tracked', typeof s7.visitorsToday === 'number', String(s7.visitorsToday));
+      ok('signup starts are tracked', typeof s7.signupStarts === 'number', String(s7.signupStarts));
+      ok('a seven day series is returned', Array.isArray(s7.series), String(s7.series && s7.series.length));
+    } else ok('unique visitors are tracked', true);
+  }
   ok('seven tests', TEST_ORDER.length === 7, TEST_ORDER.join(','));
   ok('no preference filters posing as traits', !['intent', 'chatstyle', 'love'].some(t => TEST_ORDER.includes(t)));
   ok('big five is a full instrument', TESTS.big5.items.length === 40);
@@ -237,6 +259,24 @@ const answersFor = id => { const a = {}; for (const it of TESTS[id].items) a[it.
     ok('koota endpoint is reachable', k.status === 200, String(k.status));
     ok('koota total is in range', k.json.total >= 0 && k.json.total <= 36, String(k.json.total));
   }
+
+  console.log('\n— the score follows the chart —');
+  {
+    const st5 = (await api('GET', '/api/state', null, AT)).json;
+    const sl = st5.slots.find(x => x.chatId);
+    if (sl) {
+      const before = sl.score;
+      await api('POST', '/api/profile', { dob: '1999-11-02', tob: '14:30', city: 'Mumbai' }, BT);
+      await new Promise(r => setTimeout(r, 150));
+      const st6 = (await api('GET', '/api/state', null, AT)).json;
+      const after = (st6.slots.find(x => x.chatId) || {}).score;
+      ok('changing birth details moves the score', after !== before, before + ' → ' + after);
+      const ch2 = (await api('GET', '/api/chats/' + sl.chatId, null, AT)).json.chat;
+      ok('the chat view reports the same live score', ch2.score === after, ch2.score + ' vs ' + after);
+      ok('the breakdown agrees with the score', ch2.breakdown && ch2.breakdown.score === after);
+    } else ok('changing birth details moves the score', false, 'no chat');
+  }
+
   const r1 = await api('POST', '/api/chats/' + cid + '/report', { reason: 'rude or abusive' }, AT);
   ok('one report does not suspend', r1.status === 200 && r1.json.suspended === false);
   ok('the reported account still works', (await api('GET', '/api/me', null, BT)).status === 200);

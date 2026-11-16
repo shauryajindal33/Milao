@@ -1781,8 +1781,10 @@ async function refreshChat() {
     const r = await api('/api/chats/' + S.chat.id);
     if (JSON.stringify(r.chat.messages) !== JSON.stringify(S.chat.messages) ||
         r.chat.endedAt !== S.chat.endedAt ||
+        r.chat.score !== S.chat.score ||
         !!r.chat.peerTyping !== !!S.chat.peerTyping) {
-      S.chat = r.chat; render(); scrollMsgs();
+      const grew = r.chat.messages.length !== S.chat.messages.length;
+      S.chat = r.chat; render(); if (grew) scrollMsgs();
     }
   } catch {}
 }

@@ -596,7 +596,7 @@ const PRESENCE_MS = 25_000;
    itself pending a human look. Three is low enough to catch a problem early
    and high enough that one annoyed person cannot do it alone. */
 const REPORT_SUSPEND_AT = 3;
-const VERSION = 'v40';
+const VERSION = 'v41';
 
 /* ---------- India place index: 7k towns with real coordinates ---------- */
 let TESTS_HI = null;
@@ -1348,6 +1348,33 @@ function rateLimit(key, max, windowMs) {
   b.count++;
   return b.count <= max;
 }
+/* daily counters. visitors are a salted hash of ip + browser, rotated every day,
+   so nothing here can identify anyone across days. */
+const dayKey = (t = Date.now()) => {
+  const d = new Date(t + 5.5 * 3600e3);            // IST
+  return d.toISOString().slice(0, 10);
+};
+function metrics() {
+  if (!db.metrics) db.metrics = { days: {} };
+  if (!db.metrics.days) db.metrics.days = {};
+  return db.metrics;
+}
+function dayBucket(t = Date.now()) {
+  const m = metrics(), k = dayKey(t);
+  if (!m.days[k]) m.days[k] = { visits: 0, uniq: [], starts: 0, signups: 0 };
+  return m.days[k];
+}
+function noteVisit(req) {
+  const b = dayBucket();
+  b.visits++;
+  const hash = require('node:crypto').createHash('sha1')
+    .update(ipOf(req) + '|' + String(req.headers['user-agent'] || '') + '|' + dayKey())
+    .digest('hex').slice(0, 12);
+  if (!b.uniq.includes(hash)) { if (b.uniq.length < 5000) b.uniq.push(hash); }
+  save();
+}
+function noteFunnel(kind) { try { dayBucket()[kind]++; save(); } catch {} }
+
 const ipOf = req => String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || 'x';
 
 function authUser(req) {
@@ -1386,6 +1413,7 @@ function createServer() {
           { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=86400' });
       }
       if (method === 'GET' && (p === '/' || p === '/index.html')) {
+        noteVisit(req);
         const a = path.join(__dirname, 'index.html'), b = path.join(PUBLIC_DIR, 'index.html');
         return send(res, 200, fs.readFileSync(fs.existsSync(a) ? a : b, 'utf8'));
       }
@@ -1426,6 +1454,7 @@ function createServer() {
                      lat: foundPlace.lat, lon: foundPlace.lon }
         };
         save();
+        noteFunnel('starts');
         let mailed;
         try {
           mailed = await sendMail(email, 'Your Milao code',
@@ -1459,6 +1488,7 @@ function createServer() {
           chart: astro.chart({ dob: p2.dob, tob: p2.tob, name: p2.name, place: p2.city, lat: p2.lat, lon: p2.lon })
         };
         db.users[user.id] = user;
+        noteFunnel('signups');
         delete db.pending[email];
         save();
         return send(res, 200, { token: newSession(user), user: publicUser(user) });
@@ -1757,11 +1787,24 @@ function createServer() {
           const msgs = chats.reduce((n, c) => n + c.messages.length, 0);
           const chatted = new Set(chats.flatMap(c => [c.a.uid, c.b.uid]));
           const replied = chats.filter(c => new Set(c.messages.map(m => m.uid)).size > 1).length;
+          const today = dayBucket();
+          const m = metrics();
+          const keys = Object.keys(m.days).sort().slice(-7);
+          const series = keys.map(k => ({ day: k, visits: m.days[k].visits || 0, uniq: (m.days[k].uniq || []).length,
+            starts: m.days[k].starts || 0, signups: m.days[k].signups || 0 }));
+          const uniqToday = (today.uniq || []).length;
+          const finished = users.filter(u => Object.keys(u.results || {}).length === TEST_ORDER.length).length;
           return send(res, 200, {
+            visitorsToday: today.visits || 0,
+            uniqueToday: uniqToday,
+            signupStarts: today.starts || 0,
+            signupsToday: today.signups || 0,
+            conversion: uniqToday ? +((today.signups || 0) / uniqToday * 100).toFixed(1) : 0,
+            series,
             users: users.length,
-            signupsToday: users.filter(u => now() - u.createdAt < day).length,
             activeToday: users.filter(u => now() - u.lastSeen < day).length,
             withTests: users.filter(u => Object.keys(u.results || {}).length > 0).length,
+            finishedTests: finished,
             chatted: chatted.size,
             chats: chats.length,
             chatsWithReply: replied,
@@ -1948,6 +1991,8 @@ button{font-family:var(--sans);font-size:12px;padding:7px 12px;border-radius:9px
   background:var(--surface);color:var(--teal);cursor:pointer;margin-top:8px}
 button:active{background:var(--teal-soft)}
 .empty{color:var(--faint);font-size:13px;padding:8px 0;line-height:1.6}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.k .hint{display:block;font-size:10.5px;color:var(--faint);margin-top:3px;text-transform:none;letter-spacing:0}
 #q{width:100%;box-sizing:border-box;font-family:var(--sans);font-size:13px;padding:9px 11px;border-radius:10px;
   border:1px solid var(--line);background:var(--bg);color:var(--ink);margin-bottom:10px}
 #q:focus{outline:none;border-color:var(--teal)}
@@ -1957,6 +2002,8 @@ button:active{background:var(--teal-soft)}
 ${ok ? `
 <p class="note">Private. This page shows email addresses — do not share the link.</p>
 <div class="grid" id="stats"></div>
+<div class="card"><h2>Visitors today</h2><div id="funnel"></div></div>
+<div class="card"><h2>Last seven days</h2><div id="series"></div></div>
 <div class="card"><h2>People</h2><input id="q" placeholder="search name, email or city" autocomplete="off"><div id="users"></div></div>
 <div class="card"><h2>Reports</h2><div id="reports"></div></div>
 <script>
@@ -1973,6 +2020,26 @@ async function load(){
   }).join('');
   const statsEl=document.getElementById('stats');
   if(statsEl.dataset.sig!==statsHtml){ statsEl.innerHTML=statsHtml; statsEl.dataset.sig=statsHtml; }
+
+  const f=[
+    ['unique visitors', s.uniqueToday, 'people who opened the site today'],
+    ['page views', s.visitorsToday, 'total loads, repeat visits included'],
+    ['started signup', s.signupStarts, 'entered an email'],
+    ['finished signup', s.signupsToday, 'verified the code'],
+    ['conversion', s.conversion + '%', 'of unique visitors who finished']
+  ].map(([k,v,sub])=>'<div class="k"><b>'+esc(v)+'</b><span>'+k+'</span><span class="hint">'+esc(sub)+'</span></div>').join('');
+  const fEl=document.getElementById('funnel');
+  if(fEl.dataset.sig!==f){ fEl.innerHTML=f; fEl.dataset.sig=f; }
+
+  const rows=(s.series||[]).slice().reverse().map(d=>{
+    const conv = d.uniq ? Math.round(d.signups/d.uniq*100) : 0;
+    return '<div class="rep"><div class="who">'+esc(d.day)+'</div><div class="meta">'+
+      '<span class="chip">'+d.uniq+' visitors</span><span class="chip">'+d.visits+' views</span>'+
+      '<span class="chip">'+d.starts+' started</span><span class="chip">'+d.signups+' signed up</span>'+
+      '<span class="chip">'+conv+'%</span></div></div>';
+  }).join('') || '<div class="empty">No visits recorded yet.</div>';
+  const sEl=document.getElementById('series');
+  if(sEl.dataset.sig!==rows){ sEl.innerHTML=rows; sEl.dataset.sig=rows; }
 
   const u=await (await fetch('/api/admin/users?token='+T+'&q='+encodeURIComponent(q))).json();
   const peopleHtml = u.users.length ? u.users.map(x=>
