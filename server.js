@@ -596,7 +596,7 @@ const PRESENCE_MS = 25_000;
    itself pending a human look. Three is low enough to catch a problem early
    and high enough that one annoyed person cannot do it alone. */
 const REPORT_SUSPEND_AT = 3;
-const VERSION = 'v35';
+const VERSION = 'v36';
 
 /* ---------- India place index: 7k towns with real coordinates ---------- */
 let TESTS_HI = null;
@@ -1774,16 +1774,38 @@ function createServer() {
           });
         }
         if (method === 'GET' && p === '/api/admin/users') {
+          // counts come from the chats themselves, not a counter that can drift
+          const allChats = Object.values(db.chats);
+          const perUser = {};
+          for (const c of allChats) {
+            for (const side of [c.a.uid, c.b.uid]) {
+              const e = perUser[side] || (perUser[side] = { chats: 0, messages: 0, live: 0 });
+              e.chats++;
+              e.messages += c.messages.filter(m => m.uid === side).length;
+              if (!c.endedAt) e.live++;
+            }
+          }
+          const reportsTo = {};
+          for (const r of (db.reports || [])) reportsTo[r.to] = (reportsTo[r.to] || 0) + 1;
+          const q = String(url.searchParams.get('q') || '').trim().toLowerCase();
+          const totalTests = TEST_ORDER.length;
           const list = Object.values(db.users)
+            .filter(u => !q || (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q) || (u.city || '').toLowerCase().includes(q))
             .sort((a, b) => b.createdAt - a.createdAt)
-            .slice(0, 300)
-            .map(u => ({
-              id: u.id, name: u.name, email: u.email, city: u.city,
-              createdAt: u.createdAt, tests: Object.keys(u.results || {}).length,
-              chats: (u.stats || {}).chats || 0, messages: (u.stats || {}).messages || 0,
-              tier: tierOf(cibilOf(u)).name, suspended: !!u.suspended
-            }));
-          return send(res, 200, { users: list, total: Object.keys(db.users).length });
+            .slice(0, 500)
+            .map(u => {
+              const p2 = perUser[u.id] || { chats: 0, messages: 0, live: 0 };
+              return {
+                id: u.id, name: u.name, email: u.email, city: u.city,
+                createdAt: u.createdAt, lastSeen: u.lastSeen || null,
+                tests: Object.keys(u.results || {}).length, totalTests,
+                chats: p2.chats, messages: p2.messages, live: p2.live,
+                reports: reportsTo[u.id] || 0,
+                tier: tierOf(cibilOf(u)).name, suspended: !!u.suspended,
+                suspendedReason: u.suspendReason || null
+              };
+            });
+          return send(res, 200, { users: list, total: Object.keys(db.users).length, shown: list.length });
         }
         if (method === 'GET' && p === '/api/admin/reports') {
           const list = (db.reports || []).slice(-200).reverse().map(r => {
@@ -1925,35 +1947,57 @@ button{font-family:var(--sans);font-size:12px;padding:7px 12px;border-radius:9px
   background:var(--surface);color:var(--teal);cursor:pointer;margin-top:8px}
 button:active{background:var(--teal-soft)}
 .empty{color:var(--faint);font-size:13px;padding:8px 0;line-height:1.6}
+#q{width:100%;box-sizing:border-box;font-family:var(--sans);font-size:13px;padding:9px 11px;border-radius:10px;
+  border:1px solid var(--line);background:var(--bg);color:var(--ink);margin-bottom:10px}
+#q:focus{outline:none;border-color:var(--teal)}
 .note{font-size:11.5px;color:var(--faint);line-height:1.6;margin:0 0 14px}
 </style>
 <header><h1>Milao<i>.</i></h1><span>admin</span></header>
 ${ok ? `
 <p class="note">Private. This page shows email addresses — do not share the link.</p>
 <div class="grid" id="stats"></div>
-<div class="card"><h2>People</h2><div id="users"></div></div>
+<div class="card"><h2>People</h2><input id="q" placeholder="search name, email or city" autocomplete="off"><div id="users"></div></div>
 <div class="card"><h2>Reports</h2><div id="reports"></div></div>
 <script>
 const T='${token}';
 const ago=t=>{const s=Math.round((Date.now()-t)/60000);return s<60?s+'m ago':Math.round(s/60)+'h ago'};
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let q='';
 async function load(){
   const s=await (await fetch('/api/admin/stats?token='+T)).json();
   const order=['users','signupsToday','activeToday','withTests','chatted','chats','chatsWithReply','messages','avgMessagesPerChat','reports','reportsPer100Chats','suspended','queued'];
-  document.getElementById('stats').innerHTML=order.filter(k=>k in s).map(k=>{
+  const statsHtml=order.filter(k=>k in s).map(k=>{
     const label=k.replace(/([A-Z])/g,' $1').toLowerCase();
     return '<div class="k"><b>'+esc(s[k])+'</b><span>'+label+'</span></div>';
   }).join('');
-  const u=await (await fetch('/api/admin/users?token='+T)).json();
-  document.getElementById('users').innerHTML = u.users.length ? u.users.map(x=>
+  const statsEl=document.getElementById('stats');
+  if(statsEl.dataset.sig!==statsHtml){ statsEl.innerHTML=statsHtml; statsEl.dataset.sig=statsHtml; }
+
+  const u=await (await fetch('/api/admin/users?token='+T+'&q='+encodeURIComponent(q))).json();
+  const peopleHtml = u.users.length ? u.users.map(x=>
     '<div class="rep"><div class="who">'+esc(x.name)+
-    (x.suspended?' <span class="chip red">suspended</span>':'')+'</div>'+
+    (x.suspended?' <span class="chip red">suspended</span>':'')+
+    (x.reports?' <span class="chip red">'+x.reports+' report'+(x.reports>1?'s':'')+'</span>':'')+'</div>'+
     '<div class="mail">'+esc(x.email)+'</div>'+
-    '<div class="meta"><span class="chip">'+esc(x.city)+'</span><span class="chip">'+x.tests+'/7 tests</span>'+
-    '<span class="chip">'+esc(x.tier)+'</span><span class="chip">'+ago(x.createdAt)+'</span></div></div>').join('')
-    : '<div class="empty">Nobody has signed up yet.</div>';
+    '<div class="meta"><span class="chip">'+esc(x.city)+'</span>'+
+    '<span class="chip">'+x.tests+'/'+x.totalTests+' tests</span>'+
+    '<span class="chip">'+x.chats+' chat'+(x.chats===1?'':'s')+(x.live?' · '+x.live+' live':'')+'</span>'+
+    '<span class="chip">'+x.messages+' msg</span>'+
+    '<span class="chip">'+esc(x.tier)+'</span>'+
+    '<span class="chip">joined '+ago(x.createdAt)+'</span>'+
+    (x.lastSeen?'<span class="chip">seen '+ago(x.lastSeen)+'</span>':'')+'</div>'+
+    '<button data-id="'+esc(x.id)+'" data-s="'+(x.suspended?'0':'1')+'">'+
+    (x.suspended?'Lift suspension':'Suspend')+'</button></div>').join('')
+    : '<div class="empty">'+(q?'Nobody matches that search.':'Nobody has signed up yet.')+'</div>';
+  const peopleEl=document.getElementById('users');
+  if(peopleEl.dataset.sig!==peopleHtml){
+    const y=window.scrollY;
+    peopleEl.innerHTML=peopleHtml; peopleEl.dataset.sig=peopleHtml;
+    window.scrollTo(0,y);
+  }
+
   const r=await (await fetch('/api/admin/reports?token='+T)).json();
-  document.getElementById('reports').innerHTML = r.reports.length ? r.reports.map(x=>
+  const reportHtml = r.reports.length ? r.reports.map(x=>
     '<div class="rep"><div class="who">'+esc(x.to?x.to.name:'unknown')+
     (x.to&&x.to.suspended?' <span class="chip red">suspended</span>':'')+'</div>'+
     (x.to?'<div class="mail">'+esc(x.to.email)+'</div>':'')+
@@ -1962,12 +2006,25 @@ async function load(){
     '<button data-id="'+esc(x.to?x.to.id:'')+'" data-s="'+(x.to&&x.to.suspended?'0':'1')+'">'+
     (x.to&&x.to.suspended?'Lift suspension':'Suspend')+'</button></div>').join('')
     : '<div class="empty">No reports yet. When someone is reported it shows here with the reporter and the reason.</div>';
+  const repEl=document.getElementById('reports');
+  if(repEl.dataset.sig!==reportHtml){ repEl.innerHTML=reportHtml; repEl.dataset.sig=reportHtml; }
 }
+document.addEventListener('input',e=>{
+  if(e.target.id!=='q') return;
+  q=e.target.value;
+  clearTimeout(window.__qt);
+  window.__qt=setTimeout(()=>{ document.getElementById('users').dataset.sig=''; load(); },250);
+});
 document.addEventListener('click',async e=>{
   const b=e.target.closest('button[data-id]'); if(!b) return;
+  const label=b.textContent;
+  b.disabled=true; b.textContent='working…';
   await fetch('/api/admin/suspend?token='+T,{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({userId:b.dataset.id,suspend:b.dataset.s==='1'})});
-  load();
+  document.getElementById('users').dataset.sig='';
+  document.getElementById('reports').dataset.sig='';
+  await load();
+  b.disabled=false; if(b.isConnected) b.textContent=label;
 });
 load(); setInterval(load,15000);
 </script>` : `<div class="card"><h2>Locked</h2><p class="empty">Open this page as <code>/admin?token=YOUR_ADMIN_TOKEN</code> after setting ADMIN_TOKEN on the server.</p></div>`}`;

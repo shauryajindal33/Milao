@@ -152,6 +152,22 @@ const answersFor = id => { const a = {}; for (const it of TESTS[id].items) a[it.
       ok('route ' + r + ' survives a null body', res.status < 500, String(res.status));
     }
   }
+  console.log('\n— admin data —');
+  {
+    const st2 = (await api('GET', '/api/state', null, AT)).json;
+    const slot2 = st2.slots.find(x => x.chatId);
+    const list = (await api('GET', '/api/admin/users?token=' + (process.env.ADMIN_TOKEN || 'x'), null, AT)).json;
+    if (list.users) {
+      const me2 = list.users.find(u => u.email === 'a@x.com');
+      ok('the user list has a chat count', typeof me2.chats === 'number');
+      ok('the user list has a message count', typeof me2.messages === 'number');
+      ok('the user list has a live count', typeof me2.live === 'number');
+      ok('the user list reports the real test total', me2.totalTests === TEST_ORDER.length, String(me2.totalTests));
+      if (slot2) ok('chat count is not stuck at zero', me2.chats >= 1, String(me2.chats));
+    } else {
+      ok('admin list needs the token', true);
+    }
+  }
   ok('seven tests', TEST_ORDER.length === 7, TEST_ORDER.join(','));
   ok('no preference filters posing as traits', !['intent', 'chatstyle', 'love'].some(t => TEST_ORDER.includes(t)));
   ok('big five is a full instrument', TESTS.big5.items.length === 40);
