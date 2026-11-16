@@ -596,7 +596,7 @@ const PRESENCE_MS = 25_000;
    itself pending a human look. Three is low enough to catch a problem early
    and high enough that one annoyed person cannot do it alone. */
 const REPORT_SUSPEND_AT = 3;
-const VERSION = 'v41';
+const VERSION = 'v42';
 
 /* ---------- India place index: 7k towns with real coordinates ---------- */
 let TESTS_HI = null;
@@ -1413,11 +1413,32 @@ function createServer() {
           { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=86400' });
       }
       if (method === 'GET' && (p === '/' || p === '/index.html')) {
-        noteVisit(req);
         const a = path.join(__dirname, 'index.html'), b = path.join(PUBLIC_DIR, 'index.html');
         return send(res, 200, fs.readFileSync(fs.existsSync(a) ? a : b, 'utf8'));
       }
       if (method === 'GET' && p === '/api/health') return send(res, 200, { ok: true, version: VERSION, store: store.kind, lastSaveError, users: Object.keys(db.users).length, queued: db.queue.length, chats: Object.keys(db.chats).length });
+
+      /* ---------- visits ---------- */
+      // counted from the app, not the page request: bots do not run javascript,
+      // and a browser id survives proxies and shared networks
+      if (method === 'POST' && p === '/api/visit') {
+        const b = await readBody(req);
+        const vid = String(b.vid || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40);
+        if (vid.length >= 8) {
+          const bucket = dayBucket();
+          bucket.visits++;
+          if (!bucket.uniq.includes(vid)) { if (bucket.uniq.length < 20000) bucket.uniq.push(vid); }
+          const vs = (db.visitors = db.visitors || {});
+          const rec = vs[vid] || (vs[vid] = { first: now(), last: 0, days: {}, user: null, signups: 0 });
+          rec.last = now();
+          const k = dayKey();
+          rec.days[k] = (rec.days[k] || 0) + 1;
+          const who = authUser(req);
+          if (who) rec.user = who.id;
+          save();
+        }
+        return send(res, 200, { ok: true });
+      }
 
       /* ---------- auth ---------- */
       if (method === 'POST' && p === '/api/signup/start') {
@@ -1793,10 +1814,19 @@ function createServer() {
           const series = keys.map(k => ({ day: k, visits: m.days[k].visits || 0, uniq: (m.days[k].uniq || []).length,
             starts: m.days[k].starts || 0, signups: m.days[k].signups || 0 }));
           const uniqToday = (today.uniq || []).length;
+          const vs = db.visitors || {};
+          const todayVids = today.uniq || [];
+          const signedUpToday = todayVids.filter(v => vs[v] && vs[v].user).length;
+          const neverSignedUp = uniqToday - signedUpToday;
+          const returning = todayVids.filter(v => vs[v] && vs[v].first && dayKey(vs[v].first) !== dayKey()).length;
+          const totalVisitors = Object.keys(vs).length;
+          const totalConverted = Object.values(vs).filter(v => v.user).length;
           const finished = users.filter(u => Object.keys(u.results || {}).length === TEST_ORDER.length).length;
           return send(res, 200, {
             visitorsToday: today.visits || 0,
             uniqueToday: uniqToday,
+            signedUpToday, neverSignedUp, returning,
+            totalVisitors, totalConverted,
             signupStarts: today.starts || 0,
             signupsToday: today.signups || 0,
             conversion: uniqToday ? +((today.signups || 0) / uniqToday * 100).toFixed(1) : 0,
@@ -2022,11 +2052,14 @@ async function load(){
   if(statsEl.dataset.sig!==statsHtml){ statsEl.innerHTML=statsHtml; statsEl.dataset.sig=statsHtml; }
 
   const f=[
-    ['unique visitors', s.uniqueToday, 'people who opened the site today'],
-    ['page views', s.visitorsToday, 'total loads, repeat visits included'],
+    ['unique visitors', s.uniqueToday, 'different phones that opened the app today'],
+    ['app opens', s.visitorsToday, 'each open counts once'],
+    ['returning', s.returning, 'seen before today'],
+    ['did not sign up', s.neverSignedUp, 'visitors with no account'],
     ['started signup', s.signupStarts, 'entered an email'],
     ['finished signup', s.signupsToday, 'verified the code'],
-    ['conversion', s.conversion + '%', 'of unique visitors who finished']
+    ['conversion', s.conversion + '%', 'of unique visitors who finished'],
+    ['all-time visitors', s.totalVisitors, s.totalConverted + ' ever signed up']
   ].map(([k,v,sub])=>'<div class="k"><b>'+esc(v)+'</b><span>'+k+'</span><span class="hint">'+esc(sub)+'</span></div>').join('');
   const fEl=document.getElementById('funnel');
   if(fEl.dataset.sig!==f){ fEl.innerHTML=f; fEl.dataset.sig=f; }

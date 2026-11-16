@@ -647,7 +647,7 @@ document.addEventListener('click', async (e) => {
       const r = await api('/api/signup/verify', { method: 'POST', body: { email: S.pendingEmail, code: $('#o-code').value.trim() } });
       S.token = r.token; localStorage.setItem('milao_token', r.token);
       S.devCode = null; S.authMode = 'signup';
-      await boot(); toast('Verified. Build your character.');
+      await boot(); pingVisit(); toast('Verified. Build your character.');
     }); break;
 
     case 'forgot': await guard(async () => {
@@ -668,7 +668,7 @@ document.addEventListener('click', async (e) => {
     case 'login': await guard(async () => {
       const r = await api('/api/login', { method: 'POST', body: { email: $('#l-email').value, password: $('#l-pass').value } });
       S.token = r.token; localStorage.setItem('milao_token', r.token);
-      await boot(); toast('Back in.');
+      await boot(); pingVisit(); toast('Back in.');
     }); break;
 
     case 'logout': localStorage.removeItem('milao_token'); S.token = null; S.me = null; S.chat = null; stopPoll(); render(); break;
@@ -1837,6 +1837,26 @@ function explain(kind, value, fallback) {
   return S.lang === 'hi' ? t2 : hinglish(t2);
 }
 
+/* one visit per app open, counted from here so bots and refreshes do not inflate it */
+function visitorId() {
+  let v = localStorage.getItem('milao_vid');
+  if (!v) {
+    v = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now()).replace(/-/g, '').slice(0, 32);
+    localStorage.setItem('milao_vid', v);
+  }
+  return v;
+}
+function pingVisit() {
+  try {
+    fetch('/api/visit', {
+      method: 'POST',
+      headers: Object.assign({ 'Content-Type': 'application/json' }, S.token ? { Authorization: 'Bearer ' + S.token } : {}),
+      body: JSON.stringify({ vid: visitorId() }),
+      keepalive: true
+    }).catch(() => {});
+  } catch {}
+}
+
 async function boot() {
   loadPlaces();
   try {
@@ -1851,6 +1871,7 @@ async function boot() {
   }
 }
 
+pingVisit();                       // every open counts, signed in or not
 if (S.token) boot(); else render();
 </script>
 </body>

@@ -197,15 +197,24 @@ const answersFor = id => { const a = {}; for (const it of TESTS[id].items) a[it.
 
   console.log('\n— visitors are counted —');
   {
-    await fetch('http://127.0.0.1:' + server.address().port + '/', { headers: { 'user-agent': 'probe-1', 'x-forwarded-for': '10.9.9.9' } });
-    const s7 = (await api('GET', '/api/admin/stats?token=' + (process.env.ADMIN_TOKEN || 'x'))).json;
-    if (s7.uniqueToday !== undefined) {
-      ok('unique visitors are tracked', typeof s7.uniqueToday === 'number', String(s7.uniqueToday));
-      ok('page views are tracked', typeof s7.visitorsToday === 'number', String(s7.visitorsToday));
-      ok('signup starts are tracked', typeof s7.signupStarts === 'number', String(s7.signupStarts));
-      ok('a seven day series is returned', Array.isArray(s7.series), String(s7.series && s7.series.length));
-    } else ok('unique visitors are tracked', true);
+    const before = (await api('GET', '/api/admin/stats?token=' + (process.env.ADMIN_TOKEN || 'x'))).json;
+    if (before.uniqueToday !== undefined) {
+      const b0 = before.uniqueToday;
+      await fetch(base + '/', { headers: { 'user-agent': 'bot-probe' } });
+      const afterLoad = (await api('GET', '/api/admin/stats?token=' + (process.env.ADMIN_TOKEN || 'x'))).json;
+      ok('a bare page load counts nobody (bots are excluded)', afterLoad.uniqueToday === b0, b0 + ' → ' + afterLoad.uniqueToday);
+      await api('POST', '/api/visit', { vid: 'testvisitor0001' });
+      const afterVisit = (await api('GET', '/api/admin/stats?token=' + (process.env.ADMIN_TOKEN || 'x'))).json;
+      ok('a real visit is counted', afterVisit.uniqueToday === b0 + 1, String(afterVisit.uniqueToday));
+      await api('POST', '/api/visit', { vid: 'testvisitor0001' });
+      const again = (await api('GET', '/api/admin/stats?token=' + (process.env.ADMIN_TOKEN || 'x'))).json;
+      ok('the same visitor is not counted twice', again.uniqueToday === b0 + 1, String(again.uniqueToday));
+      ok('opens still go up', again.visitorsToday > afterVisit.visitorsToday, again.visitorsToday + ' vs ' + afterVisit.visitorsToday);
+      ok('the never-signed-up count is consistent', again.neverSignedUp === again.uniqueToday - again.signedUpToday);
+      ok('a seven day series is returned', Array.isArray(again.series) && again.series.length >= 1);
+    } else ok('a bare page load counts nobody (bots are excluded)', true);
   }
+
   ok('seven tests', TEST_ORDER.length === 7, TEST_ORDER.join(','));
   ok('no preference filters posing as traits', !['intent', 'chatstyle', 'love'].some(t => TEST_ORDER.includes(t)));
   ok('big five is a full instrument', TESTS.big5.items.length === 40);
